@@ -1,0 +1,150 @@
+
+                             - 1 -
+
+
+
+
+
+                 Files on Tape for M2M Compiler
+
+
+
+
+                          M2M Compiler
+
+
+
+
+The  M2M  compiler  is  an  implementation  of  the  programming
+language Modula-2. It generates so-called M-code and is designed
+to run on the Lilith computer. The compiler has been  developped
+by a group under the direction of Prof. N. Wirth at the Institut
+fur  Informatik  of  the  Swiss Federal Institute of Tedhnology-
+Zurich (ETH).
+
+Members of the software group:
+
+  Leo Geissmann
+  Christian Jacobi
+  Svend Erik Knudsen
+  Hans Heinrich Naegeli
+  Werner Winiger
+
+The author of this memo is Leo Geissmann.
+This memo has been revised by Modula Research Institute
+to conform to distribution on diskettes for the IBM PC.
+
+
+
+
+Institut fur Informatik, ETH
+CH-8092 Zurich
+
+
+
+
+April 1981
+rev. Nov. 1983
+                             - 2 -
+
+
+Table of Contents
+
+
+  1. Documentation                                             3
+  2. Compiler Source                                           3
+  3. Library Modules                                           3
+  4. Decoder                                                   4
+
+
+
+All files are text files using the ASCII  character  set.
+
+The  file name extensions of the files are chosen with following
+meaning:
+
+  DOC Documentation files, no program text.
+
+  MOD Files  containing an implementation module for the version
+      running on Lilith.
+
+  DEF Files  containing an implementation module for the version
+      running on Lilith.
+                             - 3 -
+
+
+1. Documentation   
+
+  M2M-PC.DOC   Files on Tape for M2M Compiler (this paper).
+  COMP.DOC     Overview of the Modula-2 Compiler M2M.
+  INTERP.DOC   The M-code interpreter.
+
+
+
+2. Compiler Source   
+
+  MCBASE.DEF     MCBASE.MOD     MCBase, common data structures.
+  MCPUBL.DEF     MCPUBL.MOD     MCPublic, schedule of calls.
+  MCFILE.DEF     MCFILE.MOD     MCFileNames, compiler file names.
+
+                 MCINIT.MOD     MCInit, compiler initialisation.
+
+                 MCP1MAIN.MOD   MCPass1, syntax analysis.
+  MCP1IO.DEF     MCP1IO.MOD     MCP1IO, input / output and scanner.
+  MCP1IDEN.DEF   MCP1IDEN.MOD   MCP1Ident, identifier handling.
+  MCP1REAL.DEF   MCP1REAL.MOD   MCP1Reals, real number evaluation.
+  MCSYMFIL.DEF   MCSYMFIL.MOD   MCSymFileDefs, symbol file defs.
+
+                 MCP2MAIN.MOD   MCPass2, declaration analysis.
+  MCP2IO.DEF     MCP2IO.MOD     MCP2IO, input / output and scanner.
+  MCP2IDEN.DEF   MCP2IDEN.MOD   MCP2Ident, identifier handling.
+  MCP2REFE.DEF   MCP2REFE.MOD   MCP2Reference, reference file
+                                generator.
+  MCOPERAT.DEF   MCOPERAT.MOD   MCOperations, constant expression
+                                arithmetic.
+
+                 MCP3MAIN.MOD   MCPass3, body analysis.
+  MCP3IO.DEF     MCP3IO.MOD     MCP3IO, input / output and scanner.
+  MCP3ID.ENDEF   MCP3IDEN.MOD   MCP3Ident, identifier handling.
+
+                 MCP4MAIN.MOD   MCPass4, M-code generation.
+  MCMNEMON.DEF   MCMNEMON.MOD   Mnemonic numbers.
+  MCP4GLOB.DEF   MCP4GLOB.MOD   MCP4Global, i/o and scanner.
+  MCP4CODE.DEF   MCP4CODE.MOD   MCP4CodeSys, code output.
+  MCP4ATTR.DEF   MCP4ATTR.MOD   MCP4AttributSys, attribute handling.
+  MCP4CALL.DEF   MCP4CALL.MOD   MCP4CallSys, procedure calls.
+  MCP4EXPR.DEF   MCP4EXPR.MOD   MCP4ExpressionSys.
+
+                 MCSYMFIL.MOD    MCSymFile, symbol file generator.
+
+                 MCLIST.MOD      MCListing, listing generator.
+
+
+
+3. Library Modules
+
+  CONVERSI.DEF   CONVERSI.MOD    Conversions, number to string
+                                 conversion.
+
+                             - 4 -
+
+
+  FILENAME.DEF   FILENAME.MOD   FileNames, file name scanner.
+
+  FILELOOK.DEF   FILELOOK.MOD   FileLookup, interactive file lookup.
+
+  FILEPOOL.DEF   FILEPOOL.MOD   FilePool, File number assignment.
+
+  NEWSTREA.DEF   NEWSTREA.MOD   NewStreams, stream handling.
+
+  OPTIONS.DEF    OPTIONS.MOD    Options, program option scanner.
+
+  WRITESTR.DEF   WRITESTR.MOD   WriteStrings, terminal output.
+
+
+
+4. Decoder
+
+                 DECODE.MOD     Decoder, for compiler output files.
+  DECOMACH.DEF   DECOMACH.MOD   DecoMachineDef.
+

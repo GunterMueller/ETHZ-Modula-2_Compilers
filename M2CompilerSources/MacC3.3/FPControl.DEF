@@ -1,0 +1,1 @@
+DEFINITION MODULE FPControl; (* HS 11.9.91 *)  PROCEDURE SaveFPEnv;  PROCEDURE ClearFPEnv;  PROCEDURE RestoreFPEnv;END FPControl. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)

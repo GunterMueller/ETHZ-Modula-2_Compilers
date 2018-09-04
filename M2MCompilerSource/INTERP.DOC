@@ -1,0 +1,825 @@
+                             - 1 -
+
+
+The M-code interpreter
+----------------------
+
+Appendix 1 of the yellow report:
+
+  N.Wirth.   The   Personal   Computer   Lilith.   Institut  fur
+  Informatik, ETH. Report 40, 1981.
+
+The following Modula-2 program  interprets  M-code  instructions
+and  serves  as a high-level definition of the Lilith computer's
+instruction set and architecture. A few comments  are  necessary
+to cover details that are not fully described by the program.
+
+1.  The  array  variables  stk  and  code stand for the data and
+program  stores  respectively.  We  assume  that  on  an  actual
+computer  they  represent  the  SAME  physical memory. The array
+indices  then  denote  memory  addresses.  Access  to  the  code
+involves  the  use  of  the  base  address F (and an 18-bit wide
+addition).
+
+2. All checks against arithmetic overflow, storage overflow, and
+access  with  value  NIL  are  omitted  from  the program in the
+interest of clarity and in order not to obscure  the  essentials
+of the interpretation algorithm.
+
+3.  Certain  instructions are explained in loose English instead
+of precise Modula statements. Among them are the bitmap handling
+instructions,   which   actually   constitute   fairly   complex
+algorithms,  and  also  operations  like  shifts,  packing,  and
+unpacking,  which are considered as primitives, and hence not to
+be defined contortiously in terms of even lower primitives.
+
+4. The functions low(d), high(d), and pair(a,b)  are  introduced
+to  denote selection of a part of a double word and construction
+of a  double  word.  The  functions  Dtrunc  and  Dfloat  denote
+conversion  of  floating-point  values into double word integers
+and vice-versa. All these functions are NOT available in Modula-
+2.  Also,  sets  of  the  form  {m..n} are used, although proper
+Modula-2 does not  allow  expressions  to  be  used  within  set
+constructors.
+
+5. The detailed specification of I/O instructions is suppressed.
+It  is  considered  not  to  be  part  of  the  general   M-code
+definition,  but  should  be  allowed  to  vary  among different
+implementations according to the  available  hardware.  This  is
+particularly  true  for  the instructions DSKR, DSKW, SETRK used
+for accessing the disk.
+
+6. The interrupt mechanism is described in a rather loose manner
+and  requires  additional  explanation:  At  the  start  of each
+interpretation  cycle,  the  Boolean  variable  REQ   determines
+whether  or  not  an  interrupt  request should be honored.  REQ
+means "at least one of the unmasked  interrupt  lines  (numbered
+                             - 2 -
+
+
+8...15)  is  low".  If  we  denote  the request lines by the set
+variable  ReqLines  and  the  presence of a request on line i by
+"NOT (i IN ReqLines)", then REQ can be expressed as
+
+         REQ = (ReqLines + Mask # {8 .. 15})
+
+The value Mask is the  union  of  the  mask  register  M  and  a
+variable  called  DevMask  (Mask  =  M  +  DevMask). This global
+variable allows a program (typically the  operating  system)  to
+shut  out  any (or all) devices from interrupting. In the Lilith
+computer, DevMask is allocated in main memory at location 3. The
+value ReqNo determines the interrupt line whose request is being
+accepted. It determines the transfer vector used by the TRANSFER
+operation. The value ReqNo is defined as the maximum i such that
+"NOT (i IN ReqLines + Mask).
+
+
+Table of instructions
+---------------------
+
+      0      40     100     140     200     240     300     340
+
+ 0   LI0    LLW     LGW     LSW0    LSW     READ    FOR1    MOV
+ 1   LI1    LLD     LGD     LSW1    LSD     WRITE   FOR2    CMP
+ 2   LI2    LEW     LGW2    LSW2    LSD0    DSKR    ENTC    DDT
+ 3   LI3    LED     LGW3    LSW3    LXFW    DSKW    EXC     REPL
+ 4   LI4    LLW4    LGW4    LSW4    LSTA    SETRK   TRAP    BBLT
+ 5   LI5    LLW5    LGW5    LSW5    LXB     UCHK    CHK     DCH
+ 6   LI6    LLW6    LGW6    LSW6    LXW             CHKZ    UNPK
+ 7   LI7    LLW7    LGW7    LSW7    LXD     SYS     CHKS    PACK
+
+10   LI8    LLW8    LGW8    LSW8    DADD    ENTP    EQL     GB
+11   LI9    LLW9    LGW9    LSW9    DSUB    EXP     NEQ     GB1
+12   LI10   LLW10   LGW10   LSW10   DMUL    ULSS    LSS     ALOC
+13   LI11   LLW11   LGW11   LSW11   DDIV    ULEQ    LEQ     ENTR
+14   LI12   LLW12   LGW12   LSW12           UGTR    GTR     RTN
+15   LI13   LLW13   LGW13   LSW13           UGEQ    GEQ     CX
+16   LI14   LLW14   LGW14   LSW14   DSHL    TRA     ABS     CI
+17   LI15   LLW15   LGW15   LSW15   DSHR    RDS     NEG     CF
+
+20   LIB    SLW     SGW     SSW0    SSW     LODFW   OR      CL
+21          SLD     SGD     SSW1    SSD     LODFD   XOR     CL1
+22   LIW    SEW     SGW2    SSW2    SSD0    STORE   AND     CL2
+23   LID    SED     SGW3    SSW3    SXFW    STOFV   COM     CL3
+24   LLA    SLW4    SGW4    SSW4    TS      STOT    IN      CL4
+25   LGA    SLW5    SGW5    SSW5    SXB     COPT    LIN     CL5
+26   LSA    SLW6    SGW6    SSW6    SXW     DECS    MSK     CL6
+27   LEA    SLW7    SGW7    SSW7    SXD     PCOP    NOT     CL7
+
+30   JPC    SLW8    SGW8    SSW8    FADD    UADD    ADD     CL8
+31   JP     SLW9    SGW9    SSW9    FSUB    USUB    SUB     CL9
+32   JPFC   SLW10   SGW10   SSW10   FMUL    UMUL    MUL     CL11
+33   JPF    SLW11   SGW11   SSW11   FDIV    UDIV    DIV     CL10
+                             - 3 -
+
+
+34   JPBC   SLW12   SGW12   SSW12   FCMP    UMOD            CL12
+35   JPB    SLW13   SGW13   SSW13   FABS    ROR     BIT     CL13
+36   ORJP   SLW14   SGW14   SSW14   FNEG    SHL     NOP     CL14
+37   ANDJP  SLW15   SGW15   SSW15   FFCT    SHR     MOVF    CL15
+
+ Reserved locations:
+
+   0   (F-register of module 0)
+   1   (initialization flag of module 0)
+   2   (string pointer of module 0)
+   3   device mask
+   4   P-register
+   5   saved P-register
+   6   boot flag
+  16,17   trap vector
+  20,21   interrupt vector for line 8 (clock)
+  22,23   interrupt vector for line 9 (disk)
+  ...
+  36,37   interrupt vector for line 15
+  40..177 data frame table
+
+
+
+
+MODULE Interpreter;  (*N.Wirth, Ch.Jacobi; Feb.81*)
+
+  CONST tlc      = 16B;            (*trap location adr*)
+      dft        = 40B;            (*data frame table adr*)
+
+  VAR  (*global state variables*)
+      PC:  CARDINAL;               (*program counter*)
+      IR:  CARDINAL;               (*instruction register*)
+      F:   CARDINAL;               (*code frame base address*)
+      G:   CARDINAL;               (*data frame base address*)
+      H:   CARDINAL;               (*stack limit address*)
+      L:   CARDINAL;               (*local segment address*)
+      S:   CARDINAL;               (*stack pointer*)
+      P:   CARDINAL;               (*process base address*)
+      M:   BITSET;                 (*process interrupt mask*)
+      REQ: BOOLEAN;                (*interrupt request*)
+      ReqNo: CARDINAL;             (*request number, 8..15*)
+
+    (*auxiliary variables used over single instructions only*)
+      i, j, k: CARDINAL;
+      sz, adr, low, hi: CARDINAL; (*used in FOR, ENTP, PCOP*)
+      sb, db, sbmd, dbmd, fo: CARDINAL;  (*display handling*)
+      x, y: REAL;
+
+      stk:  ARRAY [0..177777B] OF CARDINAL;    (*data store*)
+
+  MODULE InstructionFetch;
+    IMPORT F,PC;
+    EXPORT next, next2;
+                             - 4 -
+
+
+
+    VAR code: ARRAY [0..77777B] OF [0..255];
+
+    PROCEDURE next(): CARDINAL;
+    BEGIN
+      INC(PC); RETURN code[4*F+PC-1]
+    END next;
+
+    PROCEDURE next2(): CARDINAL; (*get next two code bytes*)
+    BEGIN
+       INC(PC, 2); RETURN code[4*F+PC-2]*400B + code[4*F+PC-1]
+    END next2;
+  END InstructionFetch;
+
+  MODULE ExpressionStack;
+    EXPORT push, pop, Dpush, Dpop, empty;
+
+    VAR sp: CARDINAL;
+        a: ARRAY [0..15] OF CARDINAL;   (*expression stack*)
+
+    PROCEDURE push(x: CARDINAL);
+    BEGIN a[sp] := x; INC(sp)
+    END push;
+
+    PROCEDURE pop(): CARDINAL;
+    BEGIN DEC(sp); RETURN(a[sp])
+    END pop;
+
+    PROCEDURE Dpush(d: REAL);
+    BEGIN a[sp] := high(d); INC(sp); a[sp] := low(d); INC(sp)
+    END Dpush;
+
+    PROCEDURE Dpop(): REAL;
+    BEGIN DEC(sp,2); RETURN pair(a[sp], a[sp+1])
+    END Dpop;
+
+    PROCEDURE empty():BOOLEAN;
+    BEGIN RETURN sp = 0
+    END empty;
+
+  BEGIN sp := 0;
+  END ExpressionStack;
+
+  PROCEDURE mark(x: CARDINAL; external: BOOLEAN);
+    VAR i: CARDINAL;
+  BEGIN i := S;
+    stk[S] := x; INC(S);  (*static link*)
+    stk[S] := L; INC(S);  (*dynamic link*)
+    IF external THEN
+      stk[S] := PC+100000B ELSE stk[S] := PC
+    END ;
+    INC(S,2); L := i
+  END mark;
+                             - 5 -
+
+
+
+  PROCEDURE saveExpStack;
+    VAR c: CARDINAL;
+  BEGIN c := 0; (*expression stack counter*)
+    WHILE NOT empty() DO
+      stk[S] := pop(); INC(S); INC(c);
+    END ;
+    stk[S] := c; INC(S)
+  END saveExpStack;
+
+  PROCEDURE restoreExpStack;
+    VAR c: CARDINAL;
+  BEGIN DEC(S); c := stk[S];
+    WHILE c>0 DO
+      DEC(c); DEC(S); push(stk[S])
+    END
+  END restoreExpStack;
+
+  PROCEDURE saveRegs;
+  BEGIN saveExpStack;
+    stk[P  ] := G;  stk[P+1] := L;
+    stk[P+2] := PC; stk[P+3] := CARDINAL(M);
+    stk[P+4] := S;  stk[P+5] := H+24;
+    (* stk[P+6] is reserved for error code *)
+    (* stk[P+7] is reserved for error trap mask *)
+  END saveRegs;
+
+  PROCEDURE restoreRegs(changeMask: BOOLEAN);
+  BEGIN
+    G := stk[P];   F := stk[G];
+    L := stk[P+1]; PC := stk[P+2];
+    IF changeMask THEN M := BITSET(stk[P+3]) END ;
+    S := stk[P+4]; H := stk[P+5]-24;
+    restoreExpStack
+  END restoreRegs;
+
+  PROCEDURE Transfer(changeMask: BOOLEAN; to, from: CARDINAL);
+    VAR j: CARDINAL;
+  BEGIN
+    j := stk[to]; saveRegs; stk[from] := P;
+    P := j; restoreRegs(changeMask)
+  END Transfer;
+
+  PROCEDURE Trap(n: CARDINAL);
+  BEGIN
+    IF NOT (n IN BITSET(stk[P+7])) THEN
+      stk[P+6] := n;
+      Transfer(TRUE, tlc, tlc+1)
+    END
+  END Trap;
+
+BEGIN (* readBootFile *)
+  P := stk[4]; restoreRegs(TRUE);
+                             - 6 -
+
+
+  LOOP
+    IF REQ THEN Transfer(TRUE, 2*ReqNo, 2*ReqNo+1) END ;
+    IR := next();
+    CASE IR OF
+     0B .. 17B: (*LI0 - LI15 load immediate*)  push(IR MOD 16) |
+
+    20B: (*LIB  load immediate byte*)  push(next()) |
+
+    22B: (*LIW  load immediate word*)  push(next2()) |
+
+    23B: (*LID  load immediate double word*)
+         push(next2()); push(next2()) |
+
+    24B: (*LLA  load local address*)   push(L+next()) |
+
+    25B: (*LGA  load global address*)  push(G+next()) |
+
+    26B: (*LSA  load stack address*)   push(pop()+next()) |
+
+    27B: (*LEA  load external address*)
+         push(stk[dft+next()]+next()) |
+
+    30B: (*JPC  jump conditional*)
+         IF pop() = 0 THEN PC := PC + next2()
+                      ELSE INC(PC,2)
+         END  |
+
+    31B: (*JP   jump*)  PC := PC + next2() |
+
+    32B: (*JPFC  jump forward conditional*)
+         IF pop() = 0 THEN PC := PC + next() ELSE INC(PC) END  |
+
+    33B: (*JPF  jump forward*)   PC := PC + next()  |
+
+    34B: (*JPBC  jump backward conditional*)
+         IF pop() = 0 THEN PC := PC - next() ELSE INC(PC) END  |
+
+    35B: (*JPB  jump backward*)  PC := PC - next()  |
+
+    36B: (*ORJP  short circuit OR *)
+         IF pop() = 0 THEN INC(PC)
+                      ELSE push(1); PC := PC+next()
+         END |
+
+    37B: (*ANDJP  short circuit AND *)
+         IF pop() = 0 THEN push(0); PC := PC+next()
+                      ELSE INC(PC)
+         END |
+
+    40B: (*LLW  load local word*)     push(stk[L+next()])  |
+
+    41B: (*LLD  load local double word*)
+         i := L+next(); push(stk[i]); push(stk[i+1])  |
+                             - 7 -
+
+
+
+    42B: (*LEW  load external word*)
+         push(stk[stk[dft+next()]+next()]) |
+
+    43B: (*LED  load external double word *)
+         i := stk[dft+next()]+next();
+         push(stk[i]); push(stk[i+1]) |
+
+    44B .. 57B: (*LLW4-LLW15*)   push(stk[L + (IR MOD 16)])  |
+
+    60B: (*SLW  store local word*)    stk[L+next()] := pop() |
+
+    61B: (*SLD  store local double word*)
+         i := L+next(); stk[i+1] := pop(); stk[i] := pop()  |
+
+    62B: (*SEW  store external word*)
+         stk[stk[dft+next()]+next()] := pop() |
+
+    63B: (*SED  store external double word *)
+         i := stk[dft+next()]+next();
+         stk[i+1] := pop(); stk[i] := pop() |
+
+    64B .. 77B: (*SLW4-SLW15  store local word*)
+         stk[L+(IR MOD 16)] := pop()  |
+
+   100B: (*LGW  load global word*)    push(stk[G+next()]) |
+
+   101B: (*LGD  load global double word*)
+         i := next()+G; push(stk[i]); push(stk[i+1]) |
+
+   102B .. 117B: (*LGW2 - LGW15  load global word*)
+         push(stk[G + (IR MOD 16)]) |
+
+   120B: (*SGW  store global word*)   stk[G+next()] := pop() |
+
+   121B: (*SGD  store global double word*)
+         i := G+next(); stk[i+1] := pop(); stk[i] := pop()  |
+
+   122B .. 137B: (*SGW2 - SGW15  store global word*)
+         stk[G + (IR MOD 16)] := pop() |
+
+   140B .. 157B: (*LSW0 - LSW15  load stack addressed word*)
+         push(stk[pop()+(IR MOD 16)]) |
+
+   160B .. 177B:  (*SSW0 - SSW15  store stack-addressed word*)
+         k := pop(); i := pop()+(IR MOD 16); stk[i] := k |
+
+   200B: (*LSW  load stack word*)
+         i := pop() + next(); push(stk[i]) |
+
+   201B: (*LSD  load stack double word*)
+         i := pop() + next(); push(stk[i]); push(stk[i+1]) |
+
+                             - 8 -
+
+
+   203B: (*LXFW  load indexed frame word*)
+         k := pop() + pop()*4; push(stk[k]) |
+
+   202B: (*LSD0  load stack double word*)
+         i := pop(); push(stk[i]); push(stk[i+1]) |
+
+   204B: (*LSTA  load string address *)  push(stk[G+2]+next()) |
+
+   205B: (*LXB  load indexed byte*)
+         i := pop(); j := pop(); k := stk[j + (i DIV 2)];
+         IF i MOD 2 = 0 THEN push(k DIV 400B)
+                        ELSE push(k MOD 400B)
+         END |
+
+   206B: (*LXW  load indexed word*)
+         i := pop()+pop(); push(stk[i]) |
+
+   207B: (*LXD  load indexed double word *)
+         i := 2*pop()+pop(); push(stk[i]); push(stk[i+1])  |
+
+   210B: (*DADD  double add.  Subsequent operators for double
+           words denote unsigned fixed-point arithmetic,
+           although the program shows REAL operands*)
+         y := Dpop(); x := Dpop(); Dpush(x+y) |
+
+   211B: (*DSUB  double subtract*)
+         y := Dpop(); x := Dpop(); Dpush(x-y) |
+
+   212B: (*DMUL  double multiply*)
+         j := pop(); i := pop(); (* x := i*j *) Dpush(x) |
+
+   213B: (*DDIV  double divide*)
+         j := pop(); x := Dpop();
+         (* k := x DIV j; i := x MOD j *) push(i); push(k) |
+
+   216B: (*DSHL  double shift left*)
+         x := Dpop(); (*shift x left 1 bit*) Dpush(x) |
+
+   217B: (*DSHR  double shift right*)
+         x := Dpop(); (*shift x right 1 bit*) Dpush(x) |
+
+   220B: (*SSW  store stack word*)
+         k := pop(); i := pop()+next(); stk[i] := k |
+
+   221B: (*SSD  store stack double word*)
+         k := pop(); j := pop(); i := pop()+next();
+         stk[i] := j; stk[i+1] := k |
+
+   222B: (*SSD0  store stack double word*)
+         k := pop(); j := pop(); i := pop();
+         stk[i] := j; stk[i+1] := k |
+
+   223B: (*SXFW  store indexed frame word*)
+                             - 9 -
+
+
+         i := pop(); k := pop() + pop()*4; stk[k] := i |
+
+   224B: (*TS  test and set*)
+         i := pop(); push(stk[i]); stk[i] := 1 |
+
+   225B: (*SXB  store indxed byte*)
+         k := pop(); i := pop(); j := pop() + (i DIV 2);
+         IF i MOD 2 = 0 THEN
+              stk[j] := k*400B + (stk[j] MOD 400B)
+         ELSE stk[j] := (stk[j] DIV 400B) * 400B + k
+         END |
+
+   226B: (*SXW  store indexed word*)
+         k := pop(); i := pop()+pop(); stk[i] := k |
+
+   227B: (*SXD  store indexed double word*)
+         k := pop(); j := pop(); i := 2*pop()+pop();
+         stk[i] := j; stk[i+1] := k |
+
+   230B: (*FADD  floating add*)
+         y := Dpop(); x := Dpop(); Dpush(x+y) |
+
+   231B: (*FSUB  floating subtract*)
+         y := Dpop(); x := Dpop(); Dpush(x-y) |
+
+   232B: (*FMUL  floating multiply*)
+         y := Dpop(); x := Dpop(); Dpush(x*y) |
+
+   233B: (*FDIV  floating divide*)
+         y := Dpop(); x := Dpop(); Dpush(x/y) |
+
+   234B: (*FCMP  floating compare*)
+         x := Dpop(); y := Dpop();
+         IF x > y THEN push(0); push(1)
+           ELSIF x < y THEN push(1); push(0)
+           ELSE push(0); push(0)
+         END |
+
+   235B: (*FABS  floating absolute value*) Dpush(ABS(Dpop())) |
+
+   236B: (*FNEG  floating negative*)  Dpush(-Dpop()) |
+
+   237B: (*FFCT  floating functions*)  i := next();
+         IF i=0 THEN Dpush(FLOAT(pop()))
+           ELSIF i=1 THEN Dpush(DFloat(Dpop()))
+           ELSIF i=2 THEN push(TRUNC(Dpop()))
+           ELSIF i=3 THEN Dpush(Dtrunc(Dpop(), pop()))
+         END |
+
+   240B: (*READ*)   i := pop(); k := pop();
+                    (* stk[i] := input from channel k *) |
+
+   241B: (*WRITE*)  i := pop(); k := pop();
+                             - 10 -
+
+
+                    (* output i to channel k *) |
+
+   242B: (*DSKR  disk read*) |
+
+   243B: (*DSKW  disk write*) |
+
+   244B: (*SETRK  set disk track*) |
+
+   245B: (*UCHK*) k := pop(); j := pop(); i := pop(); push(i);
+         IF (i < j) OR (i > k) THEN Trap(4) END |
+
+   247B: (*SYS  rarely used system functions*) |
+
+   250B: (*ENTP  entry priority*)
+         stk[L+3] := CARDINAL(M); M := {0..next()-1} |
+
+   251B: (*EXP  exit priority*)   M := BITSET(stk[L+3]) |
+
+   252B: (*ULSS*) j := pop(); i := pop();
+         IF i < j THEN push(1) ELSE push(0) END  |
+
+   253B: (*ULEQ*) j := pop(); i := pop();
+         IF i <= j THEN push(1) ELSE push(0) END |
+
+   254B: (*UGTR*) j := pop(); i := pop();
+         IF i > j THEN push(1) ELSE push(0) END  |
+
+   255B: (*UGEQ*) j := pop(); i := pop();
+         IF i >= j THEN push(1) ELSE push(0) END |
+
+   256B: (*TRA  coroutine transfer*)
+         Transfer(BOOLEAN(next()), pop(), pop()) |
+
+   257B: (*RDS  read string*)   k := pop(); i := next();
+         REPEAT
+           stk[k] := next2(); INC(k); DEC(i)
+         UNTIL i < 0  |
+
+   260B: (*LODFW  reload stack after function return*)
+         i := pop(); restoreExpStack; push(i) |
+
+   261B: (*LODFD  reload stack after function return*)
+         i := pop(); j := pop(); restoreExpStack;
+         push(j); push(i) |
+
+   262B: (*STORE*)  saveExpStack |
+
+   263B: (*STOFV  store stack with formal procedure on top*)
+         i := pop(); saveExpStack; stk[S] := i; INC(S) |
+
+   264B: (*STOT  copy from stack to procedure stack*)
+         stk[S] := pop(); INC(S) |
+
+                             - 11 -
+
+
+   265B: (*COPT  copy element on top of expression stack*)
+         i := pop(); push(i); push(i) |
+
+   266B: (*DECS  decrement stackpointer*)  DEC(S) |
+
+   267B: (*PCOP  allocation and copy of value parameter *)
+         stk[L+next()] := S;
+         sz := pop(); k := S+sz; adr := pop();
+         WHILE sz>0 DO
+             stk[S] := stk[adr]; INC(S); INC(adr); DEC(sz)
+         END |
+
+   270B: (*UADD*)  j := pop(); i := pop(); push(i+j) |
+
+   271B: (*USUB*)  j := pop(); i := pop(); push(i-j) |
+
+   272B: (*UMUL*)  j := pop(); i := pop(); push(i*j) |
+
+   273B: (*UDIV*)  j := pop(); i := pop(); push(i DIV j) |
+
+   274B: (*UMOD*)  j := pop(); i := pop(); push(i MOD j) |
+
+   275B: (*ROR*)   j := pop(); i := pop() MOD 16;
+         (* k := j rightrotated by i places *) push(k) |
+
+   276B: (*SHL*)   j := pop(); i := pop() MOD 16;
+         (* k := j left shifted by i places *) push(k) |
+
+   277B: (*SHR*)   j := pop(); i := pop() MOD 16;
+         (* k := j right shifted by i places*) push(k) |
+
+   300B: (*FOR1  enter FOR statement *)
+         i := next(); (* =0: up; >0: down *)
+         hi := pop(); low := pop(); adr := pop();
+         k := PC + next2();
+         IF ((i = 0)  AND (low <= hi)) OR
+            ((i # 0)  AND (low >= hi)) THEN
+           stk[adr] := low;
+           stk[S] := adr; INC(S); stk[S] := hi; INC(S)
+         ELSE (* don't execute the FOR loop *)
+           PC := k
+         END |
+
+   301B: (*FOR2  exit FOR statement *)
+         hi := stk[S-1]; adr := stk[S-2];
+         sz := INTEGER(next()); (* step range -128..+127 *)
+         k := PC + next2(); i := stk[adr]+sz;
+         IF ((sz >= 0) AND (i > hi))
+           OR ((sz <= 0) AND (i < hi))
+         THEN (* terminate *) DEC(S,2)
+         ELSE (* continue *) stk[adr] := i; PC := k
+         END |
+
+                             - 12 -
+
+
+   302B: (*ENTC  enter CASE statement*)
+         PC := PC + next2(); k := pop();
+         low := next2(); hi := next2();
+         stk[S] := PC + 2*(hi-low) + 4; INC(S);
+         IF (k >= low) AND (k <= hi) THEN
+             PC := PC + 2*(k-low+1)
+         END;
+         PC := PC + next2() |
+
+   303B: (*EXC  exit CASE statement*) DEC(S); PC := stk[S] |
+
+   304B: (*TRAP*)  i := pop(); Trap(i) |
+
+   305B: (*CHK*) k := pop(); j := pop(); i := pop(); push(i);
+         IF (INTEGER(i) < INTEGER(j)) OR
+            (INTEGER(i) > INTEGER(k)) THEN Trap(4) END  |
+
+   306B: (*CHKZ*)
+         k := pop(); i := pop(); push(i);
+         IF i>k THEN Trap(4) END  |
+
+   307B: (*CHKS  check sign bit*)
+         k := pop(); push(k);
+         IF INTEGER(k) < 0  THEN Trap(4) END |
+
+   310B: (*EQL*)  j := pop(); i := pop();
+         IF i = j THEN push(1) ELSE push(0) END  |
+
+   311B: (*NEQ*)  j := pop(); i := pop();
+         IF i # j THEN push(1) ELSE push(0) END  |
+
+   312B: (*LSS*) j := pop(); i := pop();
+         IF INTEGER(i) < INTEGER(j) THEN
+           push(1) ELSE push(0)
+         END  |
+
+   313B: (*LEQ*) j := pop(); i := pop();
+         IF INTEGER(i) <= INTEGER(j) THEN
+           push(1) ELSE push(0)
+         END |
+
+   314B: (*GTR*) j := pop(); i := pop();
+         IF INTEGER(i) > INTEGER(j) THEN
+           push(1) ELSE push(0)
+         END  |
+
+   315B: (*GEQ*) j := pop(); i := pop();
+         IF INTEGER(i) >= INTEGER(j) THEN
+           push(1) ELSE push(0)
+         END |
+
+   316B: (*ABS*)  push(ABS(INTEGER(pop())))  |
+
+                             - 13 -
+
+
+   317B: (*NEG*)  push(-INTEGER(pop()))  |
+
+   320B: (*OR*)   j := pop(); i := pop();
+                  push(CARDINAL(BITSET(i)+BITSET(j))) |
+
+   321B: (*XOR*)  j := pop(); i := pop();
+                  push(CARDINAL(BITSET(i)/BITSET(j))) |
+
+   322B: (*AND*)  j := pop(); i := pop();
+                  push(CARDINAL(BITSET(i)*BITSET(j))) |
+
+   323B: (*COM*)  push(CARDINAL({0..15}/BITSET(pop()))) |
+
+   324B: (*IN*)   j := pop(); i := pop();
+                  IF i > 15 THEN push(0)
+                    ELSIF i IN BITSET(j) THEN push(1)
+                    ELSE push(0)
+                  END |
+
+   325B: (*LIN  load immediate NIL*)   push(177777B) |
+
+   326B: (*MSK*)  j := pop() MOD 16; push(CARDINAL({0..k-1})) |
+
+   327B: (*NOT*)  i := pop();  push(CARDINAL({15}/{j})) |
+
+   330B: (*ADD*)  j := pop(); i := pop();
+                  push(CARDINAL(INTEGER(i) + INTEGER(j))) |
+
+   331B: (*SUB*)  j := pop(); i := pop();
+                  push(CARDINAL(INTEGER(i) - INTEGER(j))) |
+
+   332B: (*MUL*)  j := pop(); i := pop();
+                  push(CARDINAL(INTEGER(i) * INTEGER(j))) |
+
+   333B: (*DIV*)  j := pop(); i := pop();
+                  push(CARDINAL(INTEGER(i) DIV INTEGER(j))) |
+
+   334B: (*MOD*)  j := pop(); i := pop();
+                  push(CARDINAL(INTEGER(i) MOD INTEGER(j))) |
+
+   335B: (*BIT*)  j := pop() MOD 16; (* k := {j} *) push(k) |
+
+   336B: (*NOP*) |
+
+   337B: (*MOVF  move frame *) i := pop();
+         j := pop()+pop()*4; (*18 bits*)
+         k := pop()+pop()*4; (*18 bits*)
+         WHILE i>0 DO
+           stk[k] := stk[j]; INC(k); INC(j); DEC(i)
+         END |
+
+   340B: (*MOV  move block*)
+         k := pop(); j := pop(); i := pop();
+                             - 14 -
+
+
+         WHILE k>0 DO
+           stk[i] := stk[j]; INC(i); INC(j); DEC(k)
+         END |
+
+   341B: (*CMP  compare blocks*)
+         k := pop(); j := pop(); i := pop();
+         IF k=0 THEN push(0); push(0)
+         ELSE
+           WHILE(stk[i] # stk[j]) AND (k > 0) DO
+             INC(i); INC(j); DEC(k)
+           END;
+           push(stk[i]); push(stk[j])
+         END |
+
+   342B: (*DDT  display dot*)
+         k := pop(); j := pop(); dbmd := pop(); i := pop()
+         (* display point at <j,k> in mode i inside
+            bitmap dbmd *) |
+
+   343B: (*REPL  replicate pattern *)
+         db := pop(); sb := pop(); dbmd := pop(); i := pop()
+         (* replicate pattern sb over block db inside
+            bitmap dbmd in mode i *) |
+
+   344B: (*BBLT  bit block transfer*)
+         sbmd := pop(); db := pop(); sb := pop();
+         dbmd := pop(); i := pop()
+         (* transfer block sb in bitmap sbmd to block db
+            inside bitmap dbmd in mode i *) |
+
+   345B: (*DCH  display character*)
+         j := pop(); db := pop(); fo := pop(); dbmd := pop()
+         (* copy bit pattern for character j from font fo
+            to block db inside bitmap dbmd *) |
+
+   346B: (*UNPK  unpack*) k := pop(); j := pop(); i := pop();
+         (*extract bits i..j from k, then right adjust*)
+         push(k) |
+
+   347B: (*PACK  pack*)
+         k := pop(); j := pop(); i := pop(); adr := pop();
+         (*pack the rightmost j-i+1 bits of k into positions
+           i..j of word stk[adr] *) |
+
+   350B: (*GB  get base adr n levels down*)
+         i := L; j := next();
+         REPEAT
+           i := stk[i]; DEC(j)
+         UNTIL j=0;
+         push(i) |
+
+   351B: (*GB1  get base adr 1 level down*)  push(stk[L]) |
+
+                             - 15 -
+
+
+   352B: (*ALLOC  allocate block*)
+         i := pop(); push(S); S := S + i;
+         IF S > H THEN S := pop(); Trap(3) END |
+
+   353B: (*ENTR  enter procedure*)
+         i := next();  S := S+i;
+         IF S > H THEN S := S-i; Trap(3) END |
+
+   354B: (*RTN  return from procedure*)
+         S := L; L := stk[S+1]; i := stk[S+2];
+         IF i < 100000B THEN PC := i
+           ELSE G := stk[S]; F := stk[G]; PC := i - 100000B
+         END |
+
+   355B: (*CX  call external procedure*)
+         j := next(); i := next();
+         mark(G, TRUE); G := stk[dft+j];
+         F := stk[G]; PC := 2*i; PC := next2()  |
+
+   356B: (*CI  call procedure at intermediate level*)
+         i := next(); mark(pop(), FALSE);
+         PC := 2*i; PC := next2()  |
+
+   357B: (*CF  call formal procedure*)
+         i := stk[S-1]; mark(G, TRUE);
+         j := i DIV 400B; G := stk[dft+j];
+         F := stk[G]; PC := 2*(i MOD 400B); PC := next2()  |
+
+   360B: (*CL  call local procedure*)
+         i := next(); mark(L, FALSE);
+         PC := 2*i; PC := next2()  |
+
+   361B .. 377B:  (*CL1 - CL15  call local procedure*)
+         mark(L, FALSE); PC := 2*(IR MOD 16); PC := next2()
+   END
+  END (*LOOP*)
+END Interpreter.
+

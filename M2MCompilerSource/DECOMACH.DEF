@@ -1,0 +1,18 @@
+DEFINITION MODULE DecoMachineDef;   (* Ch. Jacobi 1.4.81*)
+
+  EXPORT QUALIFIED 
+    MnemoTab, OpTab, OperandType;
+Y 
+  TYPE 
+    OperandType = 
+      (none, byte, twobytes, word, twowords, bytejumpf,
+       bytejumpb, wordjump, specialrds, casejpx,
+       for2jump, escape, illegal);
+    MnemonicType = ARRAY [0..5] OF CHAR; 
+
+  VAR  
+    MnemoTab: ARRAY [0..377B] OF MnemonicType; 
+    OpTab:    ARRAY [0..377B] OF OperandType;
+
+END DecoMachineDef.
+

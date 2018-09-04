@@ -1,0 +1,9 @@
+30 Jul 2009
+
+The original Macintosh format file containing these files was downloaded from:
+
+ftp://ftp.psg.com/pub/modula-2/mac/macMETH/MMC-3.2.1.sea
+
+Chris Burrows
+CFB Software
+http://www.cfbsoftware.com/modula2

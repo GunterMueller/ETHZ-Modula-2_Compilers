@@ -1,0 +1,34 @@
+      Modifications to M2M compiler to yield M2M-PC
+
+NOTE:
+  All changes are marked in the text by an empty comment (**).
+
+MCInit.MOD:
+  The memory file option has been removed.  To make the change
+the small and large options along with all statements using
+these options were placed within comment brackets.
+
+MCPublic.MOD:
+  The removal of the memory file options (above) ends the
+need for the MemoryFiles module.  In the import list,
+"MemoryFiles" has been placed within comment brackets.
+Changes have also been made in the initialization section to
+implement the Q-lister.
+
+MCP1IO.MOD:
+  In procedure NextCh one line has been added to allow tab
+characters in the source text.
+
+MCP4Global.MOD:
+  This module inserts an end-of-file character in compiler
+intermediate files for use by the lister.
+
+MCList.MOD:
+  A modification has been made so that the end-of-file
+character inserted by MCP4Global.MOD will be recognized.
+
+MCQList.MOD:
+  This is the file created to implement the Q-lister.
+It was developed by MRI and is not part of the original
+compiler.
+

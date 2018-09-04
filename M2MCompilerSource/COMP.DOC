@@ -1,0 +1,2358 @@
+
+
+
+
+
+
+             Overview of the Modula-2 Compiler M2M
+             _____________________________________
+
+
+                         Draft version
+
+
+
+
+                          M2M Compiler
+
+
+
+
+The  M2M  compiler  is  an  implementation  of  the  programming
+language Modula-2. It generates so-called M-code and is designed
+to  run on the Lilith computer.  The compiler has been developed
+by a group under the direction of Prof. N. Wirth at the Institut
+fur Informatik of  the  Swiss Federal Institute of  Technology-
+Zurich (ETH).
+
+Members of the software group:
+
+  Leo Geissmann
+  Christian Jacobi
+  Svend Erik Knudsen
+  Hans Heinrich Naegeli
+  Werner Winiger
+
+The authors of this memo are Leo Geissmann and Christian Jacobi.
+This memo has been revised by Modula Research Institute
+to conform to distribution on diskettes for the IBM PC.
+
+
+
+
+Institut fur Informatik, ETH
+CH-8092 Zurich
+
+
+
+
+April 1981
+rev. Nov. 1983
+                             - 2 -
+
+
+Table of Contents
+
+
+  1. The Compiler and Its Environment                          3
+  2. General Overview                                          3
+      1. Glossary                                              3
+      2. Compiler Parts                                        4
+      3. Work Files                                            4
+      4. Input and Output Files                                5
+      5. Succession of Main Parts                              5
+  3. Overview of the Compiler Parts                            6
+      1. Comp                                                  6
+      2. Init                                                  6
+      3. Pass1                                                 7
+      4. Pass2                                                 7
+      5. Pass3                                                 7
+      6. Pass4                                                 8
+      7. Symfile                                               8
+      8. Lister                                                8
+  4. Interpass Communication                                   9
+      1. Interpass File Pass1 to Pass2                        10
+      2. Interpass File Pass2 to Pass3                        14
+      3. Interpass File Pass3 to Pass4                        17
+      4. Interpass File Pass4 to Lister                       20
+      5. ASCII File                                           20
+  5. Symbol File                                              20
+  6. Reference File                                           23
+  7. Code File                                                25
+  8. Remarks on Internal Representation of Data               26
+  9. M-Code and Hardware                                      28
+      1. M-Code                                               28
+      2. Hardware - Software Interface                        29
+ 10. User's Guide                                             30
+      1. Glossary and Examples                                30
+      2. Compilation of a Program Module                      31
+      3. Compilation of a Definition Module                   32
+      4. Symbol Files Needed for Compilation                  32
+      5. Compiler Output Files                                33
+      6. Program Options for the Compiler                     33
+      7. Compilation Options in Compilation Units             34
+      8. Module Key                                           35
+      9. Differences and Restrictions                         35
+     10. The Module SYSTEM                                    36
+     11. Code Procedures                                      37
+     12. Compiler Error Messages                              38
+                             - 3 -
+
+
+1. The Compiler and Its Environment
+
+The  Modula-2  compiler  is  written  in  Modula-2  itself   and
+generates  code  for  the Lilith computer, the so-called M-code.
+The compiler is organised in a base part and  several  so-called
+main parts. The base part remains in the memory during the whole
+compilation and schedules the execution of the main parts, which
+are called sequentially.
+
+Each  part  consists  of  a  collection  of  separately compiled
+modules. Most compiler modules are  independent  from  the  file
+system.  Only  the implementation module MCPublic and the module
+MCInit  directly  refer  to  system  dependent  objects.  It  is
+possible  to change these two modules, especially for adaptation
+of the file names for the file system.
+
+Stream  handling  routines  are   imported   from   the   module
+NewStreams.   The  definition  module  of  this  module  has  no
+references to  other  modules  and  so  the  compiler  needs  no
+changes, if another file system is substituted.
+
+The  following  rules are respected for text files (according to
+module NewStreams):
+
+  - 'end of line' is indicated by a character with the value  of
+    eolc, exported from NewStreams.
+  - 'end of file' is indicated by a 0C character.
+
+The compiler  modules  (apart  from  MCPublic  and  MCInit)  are
+directly  importing  objects  from following library modules not
+belonging to the compiler:
+
+  NewStreams
+  Storage
+  WriteStrings
+  FileLookup
+  Conversions
+
+
+
+2. General Overview
+
+2.1. Glossary
+
+separate module   : Separately compiled program part. If objects
+                    are  exported  from  this module, then it is
+                    split into a definition part that  specifies
+                    the  names  and  properties  of the exported
+                    objects and into an implementation part that
+                    contains the local objects and the statement
+                    parts.
+                    In  this  paper the name module will be used
+                    for separate module, if no  other  attribute
+                    is specified.
+
+definition module : Definition part of a separate module.
+
+program module    : Implementation  part  (called implementation
+                             - 4 -
+
+
+                    module) of a separate module or  a  separate
+                    module without export.
+
+compilation unit  : Unit  accepted  by compiler for compilation,
+                    i.e. a definiton module or a program  module
+                    (see Modula-2 syntax).
+
+main module       : Separate module constituting a main program.
+
+source file       : Input  file  of  the  compiler  (compilation
+                    unit).
+symbol file       : Compiler   output  file  with  symbol  table
+                    information, that is  generated  during  the
+                    compilation of a definition module.
+reference file    : Compiler   output   file    with    debugger
+                    information, generated during compilation of
+                    a program module.
+code file         : Compiler  output file with M-code and loader
+                    information.
+
+
+
+2.2. Compiler Parts
+
+Base part
+
+  Comp        Compiler base, scheduling of  calls  of  the  main
+              parts.
+
+Main parts
+
+  Init        Initialisation.
+  Pass1       Syntax analysis.
+  Pass2       Declaration analysis.
+  Pass3       Body analysis.
+  Pass4       M-code generation.
+  Symfile     Symbol file generator.
+  Lister      Listing file generator.
+  QLister     Error listing to the screen
+
+
+
+2.3. Work files
+
+The  compiler  uses  three  work  files.
+
+  IL1         Interpass  file from Pass1 to Pass2 and from Pass3
+              to Pass4 or Lister. About 30000 words  are  needed
+              on file.
+  IL2         Interpass file from Pass2 to Pass3 or  Lister  and
+              from Pass4 to Lister. About 30000 words are needed
+              on file.
+  ASCII       Identifier table of compiled program (the spelling
+              index generated by Pass1 refers to the position on
+              the  ASCII  file).  About 5000 words are needed on
+              file.
+                             - 5 -
+
+
+2.4. Input and Output Files
+
+All files generated by the  compiler  obtain  the  name  of  the
+source file. They differ in their extensions as follows:
+
+Input files
+
+  MOD / DEF   MODULA-2 source file.
+              Default  file  extension  :   MOD   (for   program
+              modules).
+              The extension DEF is  recommended  for  definition
+              modules  but  is  not  known  as  default  by  the
+              compiler.
+  SYM         Symbol files of imported modules.
+              For implementation modules also the symbol file of
+              the implemented module.
+
+Output files
+
+  LST         Listing file (generated by Lister or Pass5).
+  REF         Reference file for debugging (not  for  definition
+              modules).
+  OBJ         File with generated M-code and loader  information
+              (not for definition modules).
+  SYM         Symbol file with symbolic  information  about  the
+              objects  declared  in  a  definition  module  (for
+              definition modules only).
+
+
+
+2.5. Succession of Main Parts
+
+For definition modules:
+
+  a. errors detected
+
+     Init
+     Pass1
+     Pass2
+     Lister           output: LST
+
+  b. no errors detected
+
+     Init
+     Pass1
+     Pass2
+     Symfile
+     Lister           output: LST
+                              SYM
+
+                             - 6 -
+
+
+For program modules:
+
+  a. errors detected in first three passes
+
+     Init
+     Pass1
+     Pass2
+     Pass3
+     Lister           output: LST
+
+  b. no errors detected in first three passes
+
+     Init
+     Pass1
+     Pass2
+     Pass3
+     Pass4
+     Lister           output: LST
+                              REF
+                              LNK
+
+
+
+3. Overview of the Compiler Parts
+
+3.1. Comp
+
+Comp is the base part of the compiler and schedules the calls of
+the main parts.
+
+  main module : MCBase           common data structures.
+  imported    : MCPublic         schedule of main part calls.
+                MCFileNames      compiler file names.
+                NewStreams       stream handling.
+                FilePool         file number pool.
+                Storage          heap administration.
+                WriteStrings     terminal output.
+
+The modules NewStreams, and Storage must always be  imported  by
+MCPublic.
+
+Module  MCPublic  must  be  adapted according to file system and
+execution mechanism  of  the  available  operating  system.  The
+scheduling of the calls of the main parts must always correspond
+to the indicated order in chapter 2.5. Only the filenames of the
+called main parts should be adapted to the given file system.
+
+The  variable comptime must be initialised in the initialisation
+part Init (see below).
+
+
+
+3.2. Init
+
+Init is the initialisation part of the compiler.
+
+                             - 7 -
+
+
+  main module : MCInit           compiler initialisation.
+  imported    : Clock
+                FileLookup       interactive file lookup.
+                Options          program option scanner.
+                FileNames        file name scanner.
+
+Module MCInit must be  adapted  to  file  system  and  execution
+mechanism  of the available operating system. In this module the
+name of the source file is accepted. All files (except the input
+symbol  files) used or created by the compiler must be opened in
+this module. Also, the extension of the input symbol files  must
+be initialised.
+
+The  compiler  generates  a time stamp on some output files. For
+this reason a compilation time (variable comptime  in  MCPublic)
+must be initialised by MCInit. The following format for comptime
+is suggested:
+
+  comptime[0] : date            ((Y-1900) * 16 + M) * 32 + D
+  comptime[1] : minutes         H * 60 + M
+  comptime[2] : milli-seconds   S * 1000 + MSEC
+
+
+
+3.3. Pass1
+
+Pass1 checks the syntactical correctnes of the compiled unit and
+reads the symbol files belonging to imported separate modules.
+
+  main module : MCPass1          syntax analysis.
+  imported    : MCP1IO           input / output and scanner.
+                MCP1Reals        real number evaluation.
+                MCSymFileDefs    symbol file definitions.
+                MCP1Ident        identifier handling.
+                FileLookup       interactive file lookup.
+                Options          program option scanner.
+                FileNames        file name scanner.
+
+
+
+3.4. Pass2
+
+Pass2 analyses the declarations of the compiled  unit.  It  also
+generates the reference file.
+
+  main module : MCPass2          declaration analysis.
+  imported    : MCP2IO           input / output and scanner.
+                MCP2Ident        identifier handling.
+                MCP2Reference    reference file generator.
+                MCOperations     constant expression arithmetic.
+
+
+
+3.5. Pass3
+
+Pass3  checks  the  type  compatibility  in  the  bodies  of the
+procedures.
+                             - 8 -
+
+
+  main module : MCPass3          body analysis.
+  imported    : MCP3IO           input / output and scanner.
+                MCP3Ident        identifier handling.
+                MCOperations     constant expression arithmetic.
+
+
+
+3.6. Pass4
+
+Pass4 is the M-code generator of the compiler.
+
+  main module : MCPass4           analysis of statement part.
+  imported    : MCMnemonics       mnemonics numbers.
+                MCP4Global        input / output, scanner, and
+                                  debugging aids.
+                MCP4CodeSys       code output, simple code
+                                  patterns.
+                MCP4AttributSys   attribute handling, load and
+                                  store operations.
+                MCP4CallSys       procedure calls, standard
+                                  procedure calls.
+                MCP4ExpressionSys variables and expressions.
+
+Pass4  as delivered is the full version inclusive self checking.
+To allow  bootstrapping with  little memory  eliminate  all self
+checking   procedure  calls,   the  runtime   checks,  the  code
+generation   of  runtime   checks,   and  the   debugging  aids.
+Elimination  of the  self checking  is  prepared  and documented
+in  the  module  MCP4Global.
+
+
+
+3.7. Symfile
+
+Symfile generates a symbol  file,  if  a  definition  module  is
+compiled.
+
+  main module : MCSymFile        symbol file generator.
+  imported    : MCSymFileDefs    symbol file definitions.
+                Conversions      number to string conversion.
+
+
+
+3.8. Lister
+
+Lister generates a listing file of the compiled unit.
+
+  main module : MCListing        listing generator.
+  imported    : Conversions      number to string conversion.
+                             - 9 -
+
+
+4. Interpass Communication
+
+Communication between  passes  bases  mainly  on  the  interpass
+files. They represent the structure of the compilation unit in a
+symbolic form. Information on the files (except 4.4.) refers  to
+type Symbol that is exported from module MCBase.
+
+  Symbol =
+    (eop,
+     andsy,divsy,times,slash,modsy,notsy,plus,minus,orsy,
+     eql,neq,grt,geq,lss,leq,insy,
+     lparent,rparent,lbrack,rbrack,lconbr,rconbr,
+     comma,semicolon,period,colon,range,
+     constsy,typesy,varsy,arraysy,recordsy,variant,setsy,
+     pointersy,tosy,arrow,hidden,
+     importsy,exportsy,fromsy,qualifiedsy,
+     codesy,beginsy,
+     casesy,ofsy,ifsy,thensy,elsifsy,elsesy,loopsy,
+     exitsy,repeatsy,untilsy,whilesy,dosy,withsy,
+     forsy,bysy,returnsy,becomes,endsy,
+     call,endblock,
+     definitionsy,implementationsy,proceduresy,modulesy,
+     symbolsy,
+     ident,intcon,cardcon,intcarcon,realcon,charcon,stringcon,
+     option,errorsy,eol,
+     namesy,
+     field,anycon)
+
+The files are word files. Symbols are  packed  with  a  position
+number into one word in the format:
+
+  ORD(symbol) * 400B + pos.
+
+The position number refers to the position on a source text line
+of that item that is projected to the symbol.
+
+Numbers and pointers are written in normal  word  representation
+on the file.
+
+Apart  from  the  symbolic  description  of the compilation unit
+according to the syntaxes listed in the following paragraphs the
+interpass   files   contain   further   interlaced  information
+concerning the line structure of the input file, error  messages
+and compiler options.
+
+  LineMark =      EOL LineNumber .
+  LineNumber =    Number .
+
+  Error =         ERRORSY ErrorNumber .
+  ErrorNumber =   Number .
+
+  Option =        OPTION LetterVal Switch .
+  LetterVal =     Number .
+  Switch =        PLUS | MINUS .
+
+
+
+                             - 10 -
+
+
+4.1. Interpass File Pass1 to Pass2
+
+Information written on file IL1.
+
+Syntax
+
+  1 Unit =       { SYMBOLSY ModuleKey Module }
+  2                ( DEFINTIONSY | IMPLEMENTATIONSY | MODULESY )
+  3                Module EOP .
+  4 ModuleKey =  CARDCON Value CARDCON Value CARDCON Value .
+  5 Module =     Ident [ Priority ] { Import } [ Export ] Block .
+  6 Ident =      IDENT SpellIndex .
+  7 SpellIndex = Number .
+  8 Priority =   LBRACK Constant RBRACK .
+  9 Value =      Number .
+ 10 Import =     IMPORTSY IdentList | FROMSY Ident IdentList .
+ 11 IdentList =  Ident { Ident } .
+ 12 Export =     EXPORTSY IdentList | QUALIFIEDSY IdentList .
+ 13 Block =      { Definition } [ BEGINSY StatSequence ] ENDBLOCK.
+ 14 Definition = CONSTSY { ConstDecl } |
+ 15              TYPESY { TypeDecl } |
+ 16              VARSY { VarDecl } |
+ 17              PROCEDURESY Procedure |
+ 18              MODULESY Module .
+ 19 ConstDecl =  Ident Constant .
+ 20 Constant =   ConstExpr .
+ 21 ConstExpr =  SimpleConstExpr [ RelOp SimpleConstExpr ] .
+ 22 SimpleConstExpr = [ PLUS | MINUS ] ConstTerm
+ 23                     { AddOp ConstTerm } .
+ 24 ConstTerm =  ConstFact { MulOp ConstFact } .
+ 25 ConstFact =  INTCON Value |
+ 26              CARDCON Value [ SymType ] |
+ 27              INTCARCON Value |
+ 28              CHARCON Value |
+ 29              REALCON EntryAddr |        /real value in heap/
+ 30              STRINGCON EntryAddr Length |
+ 31              QualIdent [ SetConstr ] |
+ 32              SetConstr |
+ 33              LPARENT ConstExpr RPARENT |
+ 34              NOTSY ConstFact .
+ 35 SymType =    QualIdent .              /typename of constant/
+ 36 QualIdent =  Ident { PERIOD Ident } .
+ 37 EntryAddr =  Number .
+ 38 Length =     Number .
+ 39 SetConstr =  LCONBR { Element } RCONBR .
+ 40 Element =    Constant [ RANGE Constant ] .
+ 41 TypeDecl =   Ident Type .
+ 42 Type =       SimpleType |
+ 43              HIDDEN |
+ 44              ARRAYSY { SimpleType } OFSY Type |
+ 45              RECORDSY { FieldList } ENDSY [ SymSize ] |
+ 46              SETSY SimpleType |
+ 47              POINTERSY Type |
+ 48              PROCEDURESY [ FormalTypeList ] .
+ 49 SimpleType = QualIdent | Subrange | Enumeration .
+ 50 Subrange =   LBRACK Constant RANGE Constant RBRACK .
+ 51 Enumeration = LPARENT { Ident [ SymValue ] } RPARENT .
+ 52 SymValue =   CARDCON Value .
+                               - 11 -
+
+
+ 53 FieldList =  { Ident [ SymOffset ] } COLON Type |
+ 54              CASESY [ Ident ] COLON QualIdent
+ 55                { OFSY { Element | SymVarVal } COLON
+ 56                  { FieldList } [ SymSize ] }
+ 57                [ ELSESY { FieldList } [ SymSize ] ] ENDSY .
+ 58 SymOffset =  CARDCON Value .
+ 59 SymVarVal =  CARDCON Value .
+ 60 SymSize =    CARDCON Value .
+ 61 FormalTypeList = LPARENT { [ VARSY ] FormalType } RPARENT
+ 62                    [ COLON QualIdent ] .
+ 63 FormalType = [ ARRAYSY ] QualIdent .
+ 64 VarDecl =    { Ident [ Address ] } COLON Type .
+ 65 Address =    AbsAddress | SymAddress .
+ 66 AbsAddress = LBRACK Constant RBRACK .
+ 67 SymAddress = CARDCON Value .
+ 68 Procedure =  Ident ( SymProcNum PROCEDURESY FormalTypeList |
+ 69                [ FormalParList ] [ Block | CodeBlock ] ) .
+ 70 SymProcNum = CARDCON Value .
+ 71 FormalParList = LPARENT
+ 72                   { [ VARSY ] { Ident } COLON FormalType }
+ 73                   RPARENT [ COLON QualIdent ] .
+ 74 CodeBlock =  CODESY { Constant } ENDBLOCK.
+ 75 StatSequence = { Statement } .
+ 76 Statement =  BECOMES Designator COMMA Expression |
+ 77              CALL Designator ParamList |
+ 78              IFSY Expression StatSequence
+ 79                { ELSIFSY Expression StatSequence }
+ 80                [ ELSESY Expression StatSequence ] ENDSY |
+ 81              WITHSY Designator StatSequence ENDSY |
+ 82              CASESY Expression
+ 83                { OFSY { Element } COLON StatSequence }
+ 84                [ ELSESY StatSequence ] ENDSY |
+ 85              LOOPSY StatSequence ENDSY |
+ 86              WHILESY Expression StatSequence ENDSY |
+ 87              REPEATSY StatSequence UNTILSY Expression |
+ 88              FORSY Ident COMMA Expression TOSY Expression
+ 89                [ BYSY Constant ] StatSequence ENDSY |
+ 90              RETURNSY [ LPARENT Expression RPARENT ] |
+ 91              EXITSY .
+ 92 Expression = SimpleExpr [ RelOp SimpleExpr ] .
+ 93 RelOp =      EQL | NEQ | GRT | GEQ | LSS | LEQ | INSY .
+ 94 SimpleExpr = [ MINUS ] Term { AddOp Term } .
+ 95 AddOp =      PLUS | MINUS | ORSY .
+ 96 Term =       Factor { MulOp Factor } .
+ 97 MulOp =      TIMES | SLASH | DIVSY | MODSY | ANDSY .
+ 98 Factor =     INTCON Value |
+ 99              CARDCON Value |
+100              INTCARCON Value |
+101              CHARCON Value |
+102              REALCON EntryAddr |        /real value in heap/
+103              STRINGCON EntryAddr Length |
+104              SetConstr |
+105              Designator [ ParamList | SetConstr ] |
+106              NOTSY Factor |
+107              LPARENT Expression RPARENT .
+108 Designator = QualIdent { LBRACK Expression RBRACK |
+109                PERIOD Ident | ARROW } .
+110 ParamList =  LPARENT [ Expression { COMMA Expression } ]
+                             - 12 -
+
+
+111                RPARENT .
+
+Nonterminal symbols
+
+AbsAddress         -66    65
+AddOp              -95    94    23
+Address            -65    64
+Block               69   -13     5
+CodeBlock          -74    69
+Constant            89    74    66    50    50    40    40   -20
+                    19     8
+ConstDecl          -19    14
+ConstExpr           33   -21    20
+ConstFact           34   -25    24    24
+ConstTerm          -24    23    22
+Definition         -14    13
+Designator        -108   105    81    77    76
+Element             83    55   -40    39
+EntryAddr          103   102   -37    30    29
+Enumeration        -51    49
+Export             -12     5
+Expression         110   110   108   107   -92    90    88    88
+                    87    86    82    80    79    78    76
+Factor             106   -98    96    96
+FieldList           57    56   -53    45
+FormalParList      -71    69
+FormalType          72   -63    61
+FormalTypeList      68   -61    48
+Ident              109    88    72    68    64    54    53    51
+                    41    36    36    19    11    11    10    -6
+                     5
+IdentList           12    12   -11    10    10
+Import             -10     5
+Length             103   -38    30
+Module              18    -5     3     1
+ModuleKey           -4     1
+MulOp              -97    96    24
+Number              38    37     9     7
+ParamList         -110   105    77
+Priority            -8     5
+Procedure          -68    17
+QualIdent          108    73    63    62    54    49   -36    35
+                    31
+RelOp              -93    92    21
+SetConstr          105   104   -39    32    31
+SimpleConstExpr    -22    21    21
+SimpleExpr         -94    92    92
+SimpleType         -49    46    44    42
+SpellIndex          -7     6
+Statement          -76    75
+StatSequence        89    87    86    85    84    83    81    80
+                    79    78   -75    13
+Subrange           -50    49
+SymAddress         -67    65
+SymOffset          -58    53
+SymProcNum         -70    68
+SymSize            -60    57    56    45
+SymType            -35    26
+                             - 13 -
+
+
+SymValue           -52    51
+SymVarVal          -59    55
+Term               -96    94    94
+Type                64    53    47    44   -42    41
+TypeDecl           -41    15
+Unit                -1
+Value              101   100    99    98    70    67    60    59
+                    58    52    28    27    26    25    -9     4
+                     4     4
+VarDecl            -64    16
+
+Terminal symbols
+
+ANDSY               97
+ARRAYSY             63    44
+ARROW              109
+BECOMES             76
+BEGINSY             13
+BYSY                89
+CALL                77
+CARDCON             99    70    67    60    59    58    52    26
+                     4     4     4
+CASESY              82    54
+CHARCON            101    28
+CODESY              74
+COLON               83    73    72    64    62    55    54    53
+COMMA              110    88    76
+CONSTSY             14
+DEFINTIONSY          2
+DIVSY               97
+ELSESY              84    80    57
+ELSIFSY             79
+ENDBLOCK            74    13
+ENDSY               89    86    85    84    81    80    57    45
+EOP                  3
+EQL                 93
+EXITSY              91
+EXPORTSY            12
+FORSY               88
+FROMSY              10
+GEQ                 93
+GRT                 93
+HIDDEN              43
+IDENT                6
+IFSY                78
+IMPLEMENTATIONSY     2
+IMPORTSY            10
+INSY                93
+INTCARCON          100    27
+INTCON              98    25
+LBRACK             108    66    50     8
+LCONBR              39
+LEQ                 93
+LOOPSY              85
+LPARENT            110   107    90    71    61    51    33
+LSS                 93
+MINUS               95    94    22
+MODSY               97
+                             - 14 -
+
+
+MODULESY            18     2
+NEQ                 93
+NOTSY              106    34
+OFSY                83    55    44
+ORSY                95
+PERIOD             109    36
+PLUS                95    22
+POINTERSY           47
+PROCEDURESY         68    48    17
+QUALIFIEDSY         12
+RANGE               50    40
+RBRACK             108    66    50     8
+RCONBR              39
+REALCON            102    29
+RECORDSY            45
+REPEATSY            87
+RETURNSY            90
+RPARENT            111   107    90    73    61    51    33
+SETSY               46
+SLASH               97
+STRINGCON          103    30
+SYMBOLSY             1
+TIMES               97
+TOSY                88
+TYPESY              15
+UNTILSY             87
+VARSY               72    61    16
+WHILESY             86
+WITHSY              81
+
+
+
+4.2. Interpass File Pass2 to Pass3
+
+Information written on file IL2. This  information  is  read  by
+Lister  instead of Pass3 in the case that the compiled unit is a
+definition module.
+
+Syntax
+
+  1 Unit =       Module EOP .
+  2 Module =     MODULESY Nptr [ Import ] Block .
+  3 Nptr =       Pointer .
+  4 Import =     FROMSY Ident { Ident } | IMPORTSY { Ident } .
+  5 Ident =      IDENT SpellIndex .
+  6 SpellIndex = Number .
+  7 Name =       NAMESY Nptr .
+  8 Block =      { Module | Procedure }
+  9                [ BEGINSY StatSequence ] ENDBLOCK .
+ 10 Procedure =  PROCEDURESY Nptr  [ Block | CodeBlock ] .
+ 11 CodeBlock =  CODESY { Constant } ENDBLOCK .
+ 12 StatSequence = { Statement } .
+ 13 Statement =  BECOMES Designator COMMA Expression |
+ 14              CALL ( Name | Designator ) ParamList |
+ 15              IFSY Expression StatSequence
+ 16                { ELSIFSY Expression StatSequence }
+ 17                [ ELSESY Expression StatSequence ] ENDSY |
+ 18              WITHSY Designator StatSequence ENDSY |
+                              - 15 -
+
+
+ 19              CASESY Expression
+ 20                { OFSY { Element } COLON StatSequence }
+ 21                [ ELSESY StatSequence ] ENDSY |
+ 22              LOOPSY StatSequence ENDSY |
+ 23              WHILESY Expression StatSequence ENDSY |
+ 24              REPEATSY StatSequence UNTILSY Expression |
+ 25              FORSY Ident COMMA Expression TOSY Expression
+ 26                [ BYSY Constant ] StatSequence ENDSY |
+ 27              RETURNSY [ LPARENT Expression RPARENT ] |
+ 28              EXITSY .
+ 29 Expression = SimpleExpr [ RelOp SimpleExpr ] .
+ 30 RelOp =      EQL | NEQ | GRT | GEQ | LSS | LEQ | INSY .
+ 31 SimpleExpr = [ MINUS ] Term { AddOp Term } .
+ 32 AddOp =      PLUS | MINUS | ORSY .
+ 33 Term =       Factor { MulOp Factor } .
+ 34 MulOp =      TIMES | SLASH | DIVSY | MODSY | ANDSY .
+ 35 Factor =     INTCON Value |
+ 36              CARDCON Value |
+ 37              INTCARCON Value |
+ 38              CHARCON Value |
+ 39              REALCON EntryAddr |        /real value in heap/
+ 40              STRINGCON EntryAddr Length |
+ 41              Designator [ ParamList | SetConstr ] |
+ 42              SetConstr |
+ 43              NOTSY Factor |
+ 44              LPARENT Expression RPARENT .
+ 45 Constant =   ConstExpr .
+ 46 ConstExpr =  SimpleConstExpr [ RelOp SimpleConstExpr ] .
+ 47 SimpleConstExpr = [ PLUS | MINUS ] ConstTerm
+ 48                     { AddOp ConstTerm } .
+ 49 ConstTerm =  ConstFact { MulOp ConstFact } .
+ 50 ConstFact =  INTCON Value |
+ 51              CARDCON Value [ SymType ] |
+ 52              INTCARCON Value |
+ 53              CHARCON Value |
+ 54              REALCON EntryAddr |        /real value in heap/
+ 55              STRINGCON EntryAddr Length |
+ 56              QualIdent [ SetConstr ] |
+ 57              SetConstr |
+ 58              LPARENT ConstExpr RPARENT |
+ 59              NOTSY ConstFact .
+ 60 Value =      Number .
+ 61 EntryAddr =  Number .
+ 62 Length =     Number .
+ 63 Designator = QualIdent { LBRACK Expression RBRACK |
+ 64                PERIOD Ident | ARROW } .
+ 65 QualIdent =  { Ident PERIOD } Ident .
+ 66 ParamList =  LPARENT [ Expression { COMMA Expression } ]
+ 67                RPARENT .
+ 68 SetConstr =  LCONBR { Element } RCONBR .
+ 69 Element =    Constant [ RANGE Constant ] .
+
+Nonterminal symbols
+
+AddOp               48   -32    31
+Block               10    -8     2
+CodeBlock          -11    10
+Constant            69    69   -45    26    11
+                             - 16 -
+
+
+ConstExpr           58   -46    45
+ConstFact           59   -50    49    49
+ConstTerm          -49    48    47
+Designator         -63    41    18    14    13
+Element            -69    68    20
+EntryAddr          -61    55    54    40    39
+Expression          66    66    63    44   -29    27    25    25
+                    24    23    19    17    16    15    13
+Factor              43   -35    33    33
+Ident               65    65    64    25    -5     4     4     4
+Import              -4     2
+Length             -62    55    40
+Module               8    -2     1
+MulOp               49   -34    33
+Name                14    -7
+Nptr                10     7    -3     2
+Number              62    61    60     6
+ParamList          -66    41    14
+Pointer              3
+Procedure          -10     8
+QualIdent          -65    63    56
+RelOp               46   -30    29
+SetConstr          -68    57    56    42    41
+SimpleConstExpr    -47    46    46
+SimpleExpr         -31    29    29
+SpellIndex          -6     5
+Statement          -13    12
+StatSequence        26    24    23    22    21    20    18    17
+                    16    15   -12     9
+SymType             51
+Term               -33    31    31
+Unit                -1
+Value              -60    53    52    51    50    38    37    36
+                    35
+
+Terminal symbols
+
+ANDSY               34
+ARROW               64
+BECOMES             13
+BEGINSY              9
+BYSY                26
+CALL                14
+CARDCON             51    36
+CASESY              19
+CHARCON             53    38
+CODESY              11
+COLON               20
+COMMA               66    25    13
+DIVSY               34
+ELSESY              21    17
+ELSIFSY             16
+ENDBLOCK            11     9
+ENDSY               26    23    22    21    18    17
+EOP                  1
+EQL                 30
+EXITSY              28
+FORSY               25
+                             - 17 -
+
+
+FROMSY               4
+GEQ                 30
+GRT                 30
+IDENT                5
+IFSY                15
+IMPORTSY             4
+INSY                30
+INTCARCON           52    37
+INTCON              50    35
+LBRACK              63
+LCONBR              68
+LEQ                 30
+LOOPSY              22
+LPARENT             66    58    44    27
+LSS                 30
+MINUS               47    32    31
+MODSY               34
+MODULESY             2
+NAMESY               7
+NEQ                 30
+NOTSY               59    43
+OFSY                20
+ORSY                32
+PERIOD              65    64
+PLUS                47    32
+PROCEDURESY         10
+RANGE               69
+RBRACK              63
+RCONBR              68
+REALCON             54    39
+REPEATSY            24
+RETURNSY            27
+RPARENT             67    58    44    27
+SLASH               34
+STRINGCON           55    40
+TIMES               34
+TOSY                25
+UNTILSY             24
+WHILESY             23
+WITHSY              18
+
+
+
+4.3. Interpass File Pass3 to Pass4
+
+Information  written  on  file  IL1. This information is read by
+Lister instead of Pass4  in  the  case  that  errors  have  been
+detected. If the information is read by Lister, then syntactical
+rules are relaxed.
+
+Syntax
+
+  1 Unit =       { Procedure } ENDBLOCK EOP .
+  2 Procedure =  PROCEDURESY Nptr [ Block | CodeBlock ] .
+  3 Nptr =       Pointer .
+  4 Block =      { Procedure } [ BEGINSY StatSequence ] ENDBLOCK .
+  5 StatSequence = { Statement } .
+  6 Statement =  BECOMES Variable COMMA Expression |
+                              - 18 -
+
+
+  7              CALL Variable ParamList |
+  8              IFSY Expression StatSequence
+  9                { ELSIFSY Expression StatSequence }
+ 10                [ ELSESY StatSequence ] ENDSY |
+ 11              FORSY Name COMMA Expression TOSY Expression
+ 12                [ BYSY Constant ] StatSequence ENDSY |
+ 13              CASESY Expression
+ 14                { OFSY { Element } COLON StatSequence }
+ 15                [ ELSESY StatSequence ] ENDSY |
+ 16              WHILESY Expression StatSequence ENDSY |
+ 17              REPEATSY StatSequence UNTILSY Expression |
+ 18              LOOPSY StatSequence ENDSY |
+ 19              RETURNSY [ LPARENT Expression RPARENT ] |
+ 20              EXITSY |
+ 21              WITHSY Variable StatSequence ENDSY .
+ 22 Expression = SimpleExpr [ RelOp SimpleExpr ] .
+ 23 RelOp =      EQL | NEQ | GRT | GEQ | LSS | LEQ | INSY .
+ 24 SimpleExpr = [ MINUS ] Term { AddOp Term } .
+ 25 AddOp =      PLUS | MINUS | ORSY .
+ 26 Term =       Factor { MulOp Factor } .
+ 27 MulOp =      TIMES | SLASH | DIVSY | MODSY | ANDSY .
+ 28 Factor =     Constant |
+ 29              Variable [ ParamList ] |
+ 30              LPARENT Expression RPARENT |
+ 31              NOTSY Factor .
+ 32 Variable =   [ FIELD FieldLevel PERIOD ] Name
+ 33                { LBRACK Expression RBRACK |
+ 34                  PERIOD Name | ARROW } .
+ 35 FieldLevel = Number .
+ 36 Constant =   ANYCON TypeStruct Value .
+ 37 ParamList =  LPARENT [ Expression { COMMA Expression } ]
+ 38                RPARENT .
+ 39 Element =    Constant .
+ 40 Value =      Number .
+ 41 TypeStruct = Pointer .
+ 42 Name =       NAMESY Nptr .
+ 43 CodeBlock =  CODESY ENDBLOCK .
+
+Nonterminal symbols_
+
+AddOp              -25    24
+Block               -4     2
+CodeBlock          -43     2
+Constant            39   -36    28    12
+Element            -39    14
+Expression          37    37    33    30   -22    19    17    16
+                    13    11    11     9     8     6
+Factor              31   -28    26    26
+FieldLevel         -35    32
+MulOp              -27    26
+Name               -42    34    32    11
+Nptr                42    -3     2
+Number              40    35
+ParamList          -37    29     7
+Pointer             41     3
+Procedure            4    -2     1
+RelOp              -23    22
+SimpleExpr         -24    22    22
+                             - 19 -
+
+
+Statement           -6     5
+StatSequence        21    18    17    16    15    14    12    10
+                     9     8    -5     4
+Term               -26    24    24
+TypeStruct         -41    36
+Unit                -1
+Value              -40    36
+Variable           -32    29    21     7     6
+
+Terminal symbols
+
+ANDSY               27
+ANYCON              36
+ARROW               34
+BECOMES              6
+BEGINSY              4
+BYSY                12
+CALL                 7
+CASESY              13
+CODESY              43
+COLON               14
+COMMA               37    11     6
+DIVSY               27
+ELSESY              15    10
+ELSIFSY              9
+ENDBLOCK            43     4     1
+ENDSY               21    18    16    15    12    10
+EOP                  1
+EQL                 23
+EXITSY              20
+FIELD               32
+FORSY               11
+GEQ                 23
+GRT                 23
+IFSY                 8
+INSY                23
+LBRACK              33
+LEQ                 23
+LOOPSY              18
+LPARENT             37    30    19
+LSS                 23
+MINUS               25    24
+MODSY               27
+NAMESY              42
+NEQ                 23
+NOTSY               31
+OFSY                14
+ORSY                25
+PERIOD              34    32
+PLUS                25
+PROCEDURESY          2
+RBRACK              33
+REPEATSY            17
+RETURNSY            19
+RPARENT             38    30    19
+SLASH               27
+TIMES               27
+TOSY                11
+                             - 20 -
+
+
+UNTILSY             17
+WHILESY             16
+WITHSY              21
+
+
+
+4.4. Interpass File Pass4 to Lister
+
+Information written on file IL2. The file contains a sequence of
+double  word  blocks.  A block is either a line mark or an error
+message.
+
+If the first word of  a  block  represents  a  positive  integer
+number,  then  this  block is a line mark and the word specifies
+the  line  number.  In  this  case  the  second  word  must   be
+interpreted as a code address.
+
+If  the first word of a block is a negative integer number, then
+this block is an error message and the  absolute  value  of  the
+number  specifies the error number. In this case the second word
+must be interpreted as the error position on the current line.
+
+
+
+4.5. ASCII File
+
+Identifiers of the compiled unit  are  saved  by  Pass1  on  the
+character  file  ASCII.  The generated spelling indices by which
+the identifiers are referenced in the following passes refer  to
+the  positions  of  the  identifiers on this file. Pass2 and the
+Symfile will read the ASCII file to get the real  names  of  the
+identifiers.  They  are  needed  for  the  module  names  of the
+separate units in code file, for the reference file and for  the
+symbol file.
+
+
+
+5. Symbol File
+
+Symbol  files are generated by the symbol file generator Symfile
+and are read by Pass1. Information on this files refers  to  the
+type SymFileSymbols that is exported from module MCSymFileDefs.
+
+  SymFileSymbols =
+    (endfileSS,
+     unitSS, endunitSS,
+     importSS, exportSS,
+     constSS, normalconstSS, realconstSS, stringconstSS,
+     typSS, arraytypSS, recordtypSS, settypSS, pointertypSS,
+     hiddentypSS,
+     varSS,
+     procSS, funcSS,
+     identSS,
+     periodSS, colonSS, rangeSS,
+     lparentSS, rparentSS,
+     lbracketSS, rbracketSS,
+     caseSS, ofSS, elseSS, endSS)
+                             - 21 -
+
+
+The file is a word file. However, the information  on  the  file
+must  be  considered as a sequence of bytes packed into words as
+follows:
+
+  word = firstByte + secondByte * 400B.
+
+Symbols are represented in one byte by the value ORD(symbol).
+Characters  (incl. Letter and Digit) are represented in one byte
+by the value ORD(char).
+Numbers  are  split  into two bytes with byte1 = number DIV 400B
+and byte2 = number MOD 400B.
+
+Syntax
+
+  1 Unit =       Header { SymbolModule } ENDFILESS .
+  2 Header =     SymFile ModuleKey DefModName .
+  3 SymFile =    Value .            / symbol file syntax version /
+  4 Value =      NORMALCONSTSS Number .
+  5 ModuleKey =  Value Value Value .    / compilation time stamp /
+  6 DefModName = Ident .    / name of compiled definition module /
+  7 Ident =      IDENTSS Letter { Letter | Digit } '0C' .
+  8 SymbolModule = UNITSS ModuleKey Ident
+  9                  [ IMPORTSS { Ident } ]
+ 10                  [ EXPORTSS { Ident } ]
+ 11                  { Definition } ENDUNITSS .
+ 12 Definition = CONSTSS { ConstDeclaration } |
+ 13              TYPESS { TypeDeclaration } |
+ 14              PROCSS ProcedureHeading |
+ 15              VARSS { VarDeclaration } .
+ 16 ConstDeclaration = Ident Constant .
+ 17 Constant =   Value QualIdent | RealConst | StringConst .
+ 18 QualIdent =  Ident [ PERIODSS Ident ] .
+ 19 RealConst =  REALCONSTSS RHigh RLow .
+ 20 RHigh =      Number .              /upper part of real number/
+ 21 RLow =       Number .              /lower part of real number/
+ 22 StringConst = STRINGCONSTSS { Character } '0C' .
+ 23 TypeDeclaration = Ident Type .
+ 24 Type =       SimpleType | HIDDENTYPSS | ArrayType |
+ 25              RecordType | SetType | PointerType |
+ 26              ProcType .
+ 27 SimpleType = QualIdent | Enumeration | Subrange .
+ 28 Enumeration = LPARENTSS { Ident Value } RPARENTSS .
+ 29 Subrange =   LBRACKETSS Constant RANGESS Constant RBRACKETSS .
+ 30 ArrayType =  ARRAYTYPSS SimpleType OFSS Type .
+ 31 RecordType = RECORDTYPSS { Fields } [ Variants ] ENDSS Size .
+ 32 Fields =     Ident Offset COLONSS Type .
+ 33 Variants =   CASESS COLONSS QualIdent
+ 34                { OFSS { VarVal } COLONSS [ Variants ] Size }
+ 35                [ ELSESS [ Variants ] Size ] ENDSS .
+ 36 Size =       Value .
+ 37 Offset =     Value .
+ 38 VarVal =     Value .
+ 39 SetType =    SETTYPSS SimpleType .
+ 40 PointerType = POINTERTYPSS Type .
+ 41 ProcType =   PROCSS LPARENTSS
+ 42                { [ VARSS ] [ ARRAYTYPSS ] QualIdent }
+ 43                RPARENTSS [ COLONSS QualIdent ] .
+ 44 ProcedureHeading = Ident ProcNum ProcType .
+                              - 22 -
+
+
+ 45 ProcNum =    Value .
+ 46 VarDeclaration =   Ident Address COLONSS Type .
+ 47 Address =    RelAddr | AbsAddr .
+ 48 RelAddr =    Value .
+ 49 AbsAddr =    LBRACKETSS Value RBRACKETSS .
+
+Nonterminal symbols
+
+AbsAddr            -49    47
+Address            -47    46
+ArrayType          -30    24
+Character           22
+Constant            29    29   -17    16
+ConstDeclaration   -16    12
+Definition         -12    11
+DefModName          -6     2
+Digit                7
+Enumeration        -28    27
+Fields             -32    31
+Header              -2     1
+Ident               46    44    32    28    23    18    18    16
+                    10     9     8    -7     6
+Letter               7     7
+ModuleKey            8    -5     2
+Number              21    20     4
+Offset             -37    32
+PointerType        -40    25
+ProcedureHeading   -44    14
+ProcNum            -45    44
+ProcType            44   -41    26
+QualIdent           43    42    33    27   -18    17
+RealConst          -19    17
+RecordType         -31    25
+RelAddr            -48    47
+RHigh              -20    19
+RLow               -21    19
+SetType            -39    25
+SimpleType          39    30   -27    24
+Size               -36    35    34    31
+StringConst        -22    17
+Subrange           -29    27
+SymbolModule        -8     1
+SymFile             -3     2
+Type                46    40    32    30   -24    23
+TypeDeclaration    -23    13
+Unit                -1
+Value               49    48    45    38    37    36    28    17
+                     5     5     5    -4     3
+VarDeclaration     -46    15
+Variants            35    34   -33    31
+VarVal             -38    34
+
+Terminal symbols
+
+0C                  22     7
+ARRAYTYPSS          42    30
+CASESS              33
+COLONSS             46    43    34    33    32
+                             - 23 -
+
+
+CONSTSS             12
+ELSESS              35
+ENDFILESS            1
+ENDSS               35    31
+ENDUNITSS           11
+EXPORTSS            10
+HIDDENTYPSS         24
+IDENTSS              7
+IMPORTSS             9
+LBRACKETSS          49    29
+LPARENTSS           41    28
+NORMALCONSTSS        4
+OFSS                34    30
+PERIODSS            18
+POINTERTYPSS        40
+PROCSS              41    14
+RANGESS             29
+RBRACKETSS          49    29
+REALCONSTSS         19
+RECORDTYPSS         31
+RPARENTSS           43    28
+SETTYPSS            39
+STRINGCONSTSS       22
+TYPESS              13
+UNITSS               8
+VARSS               42    15
+
+
+
+6. Reference File
+
+Reference  files  are  generated  by  Pass2  in  the case that a
+program module is compiled. Information on this files refers  to
+the type RefSymbol in module MCP2Reference.
+
+  RefSymbol =
+    (Mod, Proc, Var,
+     Int, Card, Char, Bool, Word, Real,
+     Arr, ArrDyn, Rec, Point, Set, Scal, Procvar, Hide,
+     Abs, Ind, Rel, End, Undef)
+
+The  file  is  a word file. However, the information on the file
+must be considered as a sequence of bytes packed into  words  as
+follows:
+
+  word = firstByte + secondByte * 400B.
+
+Symbols are represented in one byte by the value ORD(symbol).
+Characters are represented in one byte by the value ORD(char).
+Numbers  are  split  into two bytes with byte1 = number DIV 400B
+and byte2 = number MOD 400B.
+
+Syntax
+
+  1 RefFile =    Module .
+  2 Module =     MOD Head Block END .
+  3 Head =       LineNum Name ObjectNum .
+  4 LineNum =    Number .              / refers to source text /
+                              - 24 -
+
+
+  5 Name =       { Character } "0C" .
+  6 ObjectNum =  Number .               / refers to linker map /
+  7 Block =      { Module | Procedure | Variable } .
+  8 Procedure =  PROC Head Block END .
+  9 Variable =   VAR LineNum Name VarType AddrMode Address Size .
+ 10 VarType =    INT | CARD | CHAR | BOOL | WORD | REAL |
+ 11              ARR | ARRDYN | REC | POINT | SET | SCAL |
+ 12              PROCVAR | HIDE .
+ 13 AddrMode =   ABS | IND | REL .
+ 14 Address =    Number .
+ 15 Size =       Number .                     / number of bytes /
+
+Nonterminal symbols
+
+Address            -14     9
+AddrMode           -13     9
+Block                8    -7     2
+Character            5
+Head                 8    -3     2
+LineNum              9    -4     3
+Module               7    -2     1
+Name                 9    -5     3
+Number              15    14     6     4
+ObjectNum           -6     3
+Procedure           -8     7
+RefFile             -1
+Size               -15     9
+Variable            -9     7
+VarType            -10     9
+
+Terminal symbols
+
+0C                   5
+ABS                 13
+ARR                 11
+ARRDYN              11
+BOOL                10
+CARD                10
+CHAR                10
+END                  8     2
+HIDE                12
+IND                 13
+INT                 10
+MOD                  2
+POINT               11
+PROC                 8
+PROCVAR             12
+REAL                10
+REC                 11
+REL                 13
+SCAL                11
+SET                 11
+VAR                  9
+WORD                10
+
+
+
+                             - 25 -
+
+
+7. Code File
+
+The code file contains the generated  M-code  for  the  compiled
+program module and is produced by Pass4.
+
+The  format  of  the  code  file is chosen according to a loader
+input format that generally has the following syntax:
+
+  Loadfile   =  { Frame }.
+  Frame      =  FrameType  frameSize  { frameWord }.
+  FrameType  =  "200B" | "201B" | .... | "377B".
+  frameSize  =  Number.  /number of frameWords/
+  frameWord  =  Number.
+
+The load file is a word file, whereas FrameType and  Number  are
+represented in one word.
+
+The compiler output file obeys the syntactic structure Module:
+
+  Loadfile      = { Module }.
+  Module        = [ VersionFrame ] HeaderFrame [ ImportFrame ]
+                  { ModuleCode | DataFrame }.
+  ModuleCode    = CodeFrame [ FixupFrame ].
+
+  VersionFrame  = VERSION frameSize versionNumber.
+  HeaderFrame   = MODULE frameSize ModuleName dataSize.
+  ModuleName    = ModuleIdent ModuleKey.
+  ModuleIdent   = Letter { Letter | Digit } { "0C" }.
+                    /exactly 16 characters/
+  ModuleKey     = Number Number Number.
+  ImportFrame   = IMPORT frameSize {ModuleName}.
+  CodeFrame     = CODETEXT frameSize wordOffset { codeWord }.
+  FixupFrame    = FIXUP frameSize {ByteOffset}.
+  DataFrame     = DATATEXT frameSize wordOffset { dataWords }.
+
+  frameSize     = Number.
+
+  wordOffset    = Number.
+                    /in words from the beginning the module/
+  dataSize      = Number. /in words/
+  versionNumber = Number. /current version is 3/
+  dataWord      = Number.
+  codeWord      = Number.
+  byteOffset    = Number.
+                    /in bytes from the beginning of the module/
+
+  VERSION       = "200B".
+  MODULE        = "201B".
+  IMPORT        = "202B".
+  CODETEXT      = "203B".
+  DATATEXT      = "204B".
+  FIXUP         = "205B".
+
+Offsets  are always relative to the beginning of the module. For
+CodeFrame and FixupFrame the offset is from the beginning of the
+codeframe  of  the  module,  whereas for DataFrame the offset is
+from the beginning of the dataframe of the module. The codeframe
+and dataframe of a module do not overlap.
+                             - 26 -
+
+
+What to do with fixups:
+A  fixup always refers to a byte in the code sequence. This byte
+contains a logical module number. It  must  be  replaced  by  an
+actual  module  number  that must be assigned to the module by a
+linker or by the loader at loading time.
+
+The logical module number n refers to the n'th  imported  module
+as  listed  in  the  ImportFrame. The logical module number 0 is
+specially  treated  and  means  the  module  itself.   This   is
+regardless of the fact that the module itself may be part of the
+import list. In such cases, the compiled module has in  addition
+to 0 an ordinary logical module number, like any other module.
+
+The  actual  module  number  0  is  reserved for a communication
+module (called System) which implements  NEWPROCESS.  References
+to  this  module  System are generated with module number 0, but
+without using fixups to modify the module  number.  (The  module
+System is found on the file SYSTEM.DOC).
+
+
+
+8. Remarks on Internal Representation of Data
+
+The basic memory unit for data is the word. One word contains 16
+bits. Every word in data memory can be accessed  explicitly.  In
+the following list for each data type the number of words needed
+in memory and the representation of the values is indicated.
+
+Basic types
+INTEGER   Needs one word in memory.
+          Minimal value -32768 (octal INTEGER(100000B)); maximal
+          value 32767 (octal 77777B).
+          Bit 0 is the sign bit; bit 1 the most significant bit.
+
+CARDINAL  Needs one word in memory.
+          Minimal value 0 (octal 0B); maximal value 65535 (octal
+          177777B).
+          Bit 0 is the most significant bit.
+
+BOOLEAN   Needs one word in memory.
+          This type must be considered as an enumeration (FALSE,
+          TRUE) with the values FALSE = 0 and TRUE = 1 (bit 15).
+          Other values may cause errors.
+
+CHAR      Needs one word in memory. In arrays two characters are
+          packed into one word.
+          ASCII   character  set  is  used.  The  implementation
+          guarantees  for  variables  the  range  0..255  (octal
+          0B..377B).  For  Constants  only the range 0C..177C is
+          allowed.
+
+REAL      Needs two words in memory (32 bits).
+          Bit  0 of the first word is the sign bit. Bits 1..8 of
+          the first word represent an 8-bit  exponent  in  exess
+          128  notation.  Bits 9..15 of the first word represent
+          the high part of the  mantissa  and  the  second  word
+          represents  the low part of the mantissa. The mantissa
+                             - 27 -
+
+
+          is assumed to be normalized (0.5 <=  mantissa  < 1.0),
+          whereas  the  most  significant bit of the mantissa is
+          not stored (it is always 1).
+
+Enumerations
+
+One word is needed in memory.
+The first value of the enumeration is represented by the integer
+value 0; the following enumeration values get the  next  integer
+values accordingly.
+
+Subranges
+
+Subrange types are represented according to their base types.
+
+Array types
+
+Arrays  are  usually  accessed indirectly. A pointer to an array
+points to the first element of the array.
+In character arrays two characters are packed into one word. The
+first character is stored in the high order byte  of  the  first
+word  (Bits  0..7),  the  second character in the low order byte
+(Bits 8..15), and so on.
+
+Record types
+
+Records are usually accessed indirectly. A pointer to  a  record
+points to the first field of the record.
+Consecutive fields of a record get consecutive memory locations.
+Every field needs at least one word.
+
+Set types
+
+Sets are implemented in one word.
+The first bit corresponds to the sign bit.
+  CARDINAL({})   is      0B
+  CARDINAL({0})  is 100000B  (bit 0)
+  CARDINAL({1})  is  40000B
+  CARDINAL({2})  is  20000B
+  CARDINAL({3})  is  10000B
+  ...
+  CARDINAL({14}) is      2B
+  CARDINAL({15}) is      1B  (bit 15)
+
+  INCL(s, i) means: bit i in s is set to 1.
+
+Pointer types
+
+One word is  needed  in  memory.  Pointers  are  implemented  as
+absolute addresses. NIL is represented by the value 177777B.
+
+Procedure types
+
+Warning: Do not use this information.
+One word is needed in memory. The high order byte represents the
+module  number,  the  low order byte the procedure number of the
+assigned procedure.
+                             - 28 -
+
+
+Hidden exported types
+
+One word is needed in memory.
+
+System dependant types
+
+WORD      One word is needed in memory.
+
+ADDRESS   One word is needed in memory. The value is an absolute
+          address.
+
+PROCESS   One word is needed in memory. The value is an absolute
+          address pointing to a process descriptor.
+
+Formal parameters
+
+Variable parameters:
+
+  The address is transferred to the expression stack.
+  For  dynamic  arrays  also  the value HIGH is submitted to the
+  expression stack. (The  push  operation  for  the  address  is
+  executed first.)
+
+Value parameters:
+
+  Records   and  arrays:  The  address  is  transferred  to  the
+    expression  stack  (no  matter  of  size).   The   procedure
+    allocates the memory space and copies the parameter.
+    For dynamic arrays also the value HIGH is submitted  to  the
+    expression  stack.  (The  push  operation for the address is
+    executed first.)
+
+  Reals: The value itself is passed to the expression stack (two
+    words).  The  procedure  copies  the  value  into its proper
+    location.
+
+  Basic types and other types with  one  word  size:  The  value
+    itself  is  passed  to  the  expression stack. The procedure
+    copies the value into its proper location.
+
+
+
+9.M-Code and Hardware
+
+9.1. M-Code
+
+The M-code is described in an appendix of the yellow report:
+
+  N.Wirth.  The   Personal   Computer   Lilith.   Institut   fur
+  Informatik, ETH. Report 40, 1981.
+
+The   appendix  "The  M-code  interpreter"  contains  the  whole
+definition of instructions  of  the  Lilith  machine  which  are
+generated  by the compiler. Not documented is only, how hardware
+tests against NIL pointers, memory overflow, ..., and arithmetic
+overflow  are  implemented.  These  details  do  not  affect the
+compiler at all.
+                             - 29 -
+
+
+9.2. Hardware - Software Interface
+
+DOCUMENTATION MODULE Hardware;  (* Ch. Jacobi 2.2.81 *)
+  FROM SYSTEM IMPORT ADDRESS;
+
+  (* Usage of this documentation module is not recommended,
+     most features  are exported anyway from a corresponding
+     real module.
+     Areas which seem unused are used by the operating system
+     software and are not free for the user. *)
+
+  CONST hardDataFrameLength = 256;
+        softDataFrameLength =  96;
+
+  CONST dataFrameLength = softDataFrameLength;
+
+  TYPE
+    ProcedureMark =
+      RECORD
+        g:   ADDRESS;
+        l:   ADDRESS;
+        pc:  CARDINAL;
+        msk: BITSET
+      END;
+
+    ProcessDescriptor =
+      RECORD
+        mark: ProcedureMark;
+        s: ADDRESS;
+        h: ADDRESS;
+        errCode:  CARDINAL;
+        trapMask: BITSET
+      END;
+
+    ProcessPointer = POINTER TO ProcessDescriptor;
+    (*SYSTEM.*)PROCESS = ProcessPointer;
+
+    Vector =
+      RECORD
+        driver:      ProcessPointer;
+        interrupted: ProcessPointer
+      END;
+
+  CONST
+    (* error codes *)
+      end        =  0;  (*end*)
+      instrChk   =  1;  (*illegal instruction*)
+      prioChk    =  2;  (*priority error*)
+      storageChk =  3;  (*storage overflow*)
+      rangeChk   =  4;  (*range violation*)
+      addrChk    =  5;  (*NIL access or invalid
+                          computed address*)
+      realOvfl   =  6;  (*floating point overflow*)
+      cardOvfl   =  7;  (*cardinal overflow (maskable)*)
+      intOvfl    =  8;  (*integer overflow  (maskable)*)
+
+  VAR
+    (* the number [x] in brakets means an absolute address *)
+                             - 30 -
+
+
+    pointerToCodeFrame[0]: ADDRESS;
+    globalDeviceMask  [3]: BITSET;
+    initialPRegister  [4]: ProcessPointer;
+    savePRegister     [5]: ProcessPointer;
+    bootFlag          [6]: WORD; (*warning, Medos software
+                           overwrites the hardware function*)
+    interruptVectors [14]: ARRAY [7..15] OF Vector;
+    dataFrameTable   [32]: ARRAY [0..dataFrameLength-1] OF
+                             ADDRESS;
+
+END Hardware.
+
+
+
+10. User's Guide
+
+This  chapter  illustrates  the  use  of   the   compiler.   The
+description  refers  to  the  system  on  the  personal computer
+Lilith. With the exception of the file names the user  interface
+should not be completely different for any other system.
+
+
+
+10.1. Glossary and Examples
+
+Glossary
+
+compilation unit  : Unit  accepted  by compiler for compilation,
+                    i.e. a definition module or a program module
+                    (see Modula-2 syntax).
+definition module : Part of a  separate  module  specifying  the
+                    exported objects.
+program module    : Implementation part  of  a  separate  module
+                    (called   implementation   module)  or  main
+                    module.
+source file       : Input  file  of  the  compiler  (compilation
+                    unit) (default extension MOD).
+symbol file       : Compiler   output  file  with  symbol  table
+                    information. This information  is  generated
+                    during  compilation  of  a definition module
+                    (extension SYM).
+reference file    : Compiler    output    file   with   debugger
+                    information, generated during compilation of
+                    a program module (extension REF).
+code file         : Compiler output file with the generated code
+                    in loader format (extension OBJ).
+
+
+Examples
+
+The examples given in  this  chapter  to  explain  the  compiler
+execution refer to following compilation units:
+
+  MODULE Prog1;
+    ...
+  END Prog1.
+                             - 31 -
+
+
+  MODULE Prog2;
+  BEGIN
+    a := 2
+  END PROG2.
+
+
+  DEFINITION MODULE Prog3;
+    EXPORT QUALIFIED ...
+    ...
+  END Prog3.
+
+  IMPLEMENTATION MODULE Prog3;
+    ...
+  END Prog3.
+
+
+  DEFINITION MODULE Prog4;
+    IMPORT FileSystem;
+    EXPORT QUALIFIED ...
+    ...
+  END Prog4.
+
+
+  MODULE Prog5;
+    IMPORT Prog3, Prog4;
+    ...
+  END Prog5.
+
+
+
+10.2. Compilation of a Program Module
+The compiler is called by typing "modula".  After displaying the
+string  "source  file>"  the  compiler  is  ready  to accept the
+filename of the compilation unit to be compiled.
+
+  *modula
+  source file> Prog1.MOD     (* name DK.Prog1.MOD is accepted *)              
+  p1
+  p2                         (* indicates succession of   *)
+  p3                         (* activated compiler passes *)
+  p4
+  lister
+  end compilation
+  *
+
+Default device    : DK
+
+Default extension : MOD
+
+If syntactical errors occur in the  compiled  unit,  compilation
+stops  after the third pass and a listing with error messages is
+generated.
+
+  *modula 
+  source file> Prog2.MOD               
+  p1
+   ---- error                 (* error detected by pass 1 *)
+                             - 32 -
+
+
+  p2
+  p3
+   ---- error
+  lister
+  end compilation
+  *
+
+
+
+10.3. Compilation of a Definition Module
+
+For   definition   modules   the   filename   extension  DEF  is
+recommended. The definition part of a module  must  be  compiled
+prior to its implementation part. A symbol file is generated for
+definition modules.
+
+  *modula
+  source file> Prog3.DEF  (* definition module *)
+  p1
+  p2
+  symfile
+  lister
+  end compilation
+  *
+
+
+
+10.4. Symbol Files Needed for Compilation
+
+Upon   compilation   of  a  definition  module,  a  symbol  file
+containing  symbol  table   information   is   generated.   This
+information is needed by the compiler in two cases:
+
+  At compilation of the implementation part of the module.
+
+  At  compilation  of  another unit, importing objects from this
+  separate module.
+
+According to a program  option,  set  when  the  compilation  is
+started  (see  10.6.),  the  compiler  either  attaches a needed
+symbol file by a default name  which  is  constructed  from  the
+(first  16 characters of the) module name or explicitly asks for
+the names of the needed symbol files. In  the  latter  case  the
+query  for  a symbol file is repeated until an adaequate file is
+found or the <esc> key is typed.
+
+  *modula
+  source file> Prog3.MOD  (* implementation module *)
+  p1
+   Prog3: DK.Prog3.SYM
+  p2
+  p3
+  p4
+  lister
+  end compilation
+  *
+
+                             - 33 -
+
+
+  *modula
+  source file> Prog4.DEF
+  p1
+   SystemTypes: DK.LIB.FileSystem.SYM
+  p2
+  symfile
+  lister
+  end compilation
+  *
+
+  *modula
+  source file> Prog5.MOD/query
+  p1
+   Prog3> Prog3.SYM 
+   Prog4> Prog4.SYM
+  p2
+  p3
+  p4
+  lister
+  end compilation
+  *
+
+
+
+10.5. Compiler Output Files
+
+Several files are generated by the compiler. They get  the  same
+filename  as  the  source  file  and  are  distinguished  by the
+following extensions:
+
+  for definition modules :  listing         LST
+                            symbol file     SYM
+
+  for program modules    :  listing         LST
+                            reference file  REF
+                            code file       OBJ
+
+The  reference file may be used by a debugger to obtain names of
+objects.
+
+
+
+10.6. Program Options for the Compiler
+
+When reading the source file name,  the  compiler  also  accepts
+some  program  options from keyboard. Program options are marked
+with a leading character '/'  and  must  be  typed  sequentially
+after the file name (modules Options and FileNames).
+
+The compiler accepts the options:
+
+  Listing   : A listing file must be generated.
+
+  Nolisting : No listing file must be generated.
+
+  Query     : Compiler  explicitly  asks  for  the  names of the
+              needed symbol files belonging to modules  imported
+              by the compiled unit.
+                             - 34 -
+
+
+  NOQuery   : No query for symbol  file  names.  The  files  are
+              searched corresponding to a default strategy.
+
+  Version   : Compiler  has  to  display  information  about the
+              running version,  (e.g.  processor  and  operating
+              system flags).
+
+Defaults:
+
+  NOQuery and QListing are set as default options.  Listing is the
+  normal  default,  but  it  has  been  changed  in  this version.
+
+
+
+10.7. Compilation Options in Compilation Units
+
+Comments  in  a Modula-2 compilation unit may be used to specify
+certain compilation options for tests.
+
+The following syntax is accepted for compilation options:
+
+  CompOptions = CompOption { "," CompOption } .
+  CompOption  = "$" Letter Switch .
+  Switch  = "+" | "-" | "=" .
+
+Options must be the first information in a comment. They are not
+recognized  by  the  compiler, if other information precedes the
+options.
+
+Letter :
+
+  R   Subrange and type conversion test.
+  T   Index test (arrays, case).
+
+Switch :
+
+  +   Test code is generated.
+  -   No test code is generated.
+  =   Previous switch becomes valid again.
+
+Defaults :
+
+  All switches are set to "+" by default.
+
+Example :
+
+  MODULE x; (* $T+ *)
+    ...                           test code generated
+    ...
+    (* $T- *)
+    a[i] := a[i+1];               no test code is generated
+    (* $T= *)
+    ...                           test code is generated
+    ...
+  END x
+
+
+
+                             - 35 -
+
+
+10.8. Module Key
+
+With each compilation unit the compiler  generates  a  so-called
+"module  key".  This  key is unique and is needed to distinguish
+different compiled versions of the same module. The  module  key
+is written on the symbol file and on the code file.
+
+For   an   implementation  module  the  key  of  the  associated
+definition module  is  adopted.  The  module  keys  of  imported
+modules  are also recorded on the generated symbol files and the
+code files.
+
+Any mismatch of module keys belonging to the  same  module  will
+cause an error message at compilation or load time.
+
+WARNING : Recompilation  of  a  definition module will produce a
+          new symbol file with a new module key.  In  this  case
+          the implementation module and all units importing this
+          module must be recompiled as well.
+
+Recompilation of an implementation module does  not  affect  the
+module key.
+
+
+
+10.9. Differences and Restrictions
+
+For  the  implementation  of Modula-2 on Lilith some differences
+and  restrictions  must  be  considered.  All  restrictions  are
+checked by the compiler.
+
+Real number constants
+
+Expressions  of  constant  real numbers are not evaluated by the
+compiler (except sign inversion).
+
+Character arrays
+
+In arrays with element type CHAR two characters are packed  into
+one word. This implies the restriction that a variable parameter
+of type CHAR  must  not  be  substituted  by  an  element  of  a
+character array.
+
+FOR statement
+
+The  values of both expressions of the for statement must not be
+greater than 77777B. The values are checked at run time, if  the
+compilation option R+ is specified.
+The step must be in the range [-128..127], whereas the  value  0
+is not allowed.
+
+CASE statement
+
+The labels of a case statement must not be greater than 77777B.
+
+Value ARRAY OF WORD parameter
+
+Constants  (with  the exception of constant strings) must not be
+                             - 36 -
+
+
+substituted for a value dynamic ARRAY OF WORD parameter.
+
+
+
+10.10. The Module SYSTEM
+
+The module SYSTEM offers some further tools of Modula-2. Most of
+them  are  implementation  dependent  and/or  refer to the given
+processor. Such kind of tools are sometimes  necessary  for  the
+so-called  "low  level  programming". SYSTEM contains also types
+and procedures, which allow a very basic coroutine handling.
+
+The module SYSTEM is directly known to the compiler, because its
+exported objects obey special rules, that must be checked by the
+compiler. If a compilation  unit  imports  objects  from  module
+SYSTEM, then no symbol file must be supplied for this module.
+
+For  more  detailed  information  see  also  N. Wirth, MODULA-2,
+chapter 12.
+
+Objects exported from module SYSTEM:
+
+  Types
+
+  WORD
+
+    Representation of an individually  accessible  storage  unit
+    (one  word). No operations are allowed for variables of type
+    WORD. A WORD parameter  may  be  substituted  by  an  actual
+    parameter of any type that uses one word in storage.
+
+  ADDRESS
+
+    Word  address  of  any  location  in  the  storage. The type
+    ADDRESS is compatible with all pointer types and  is  itself
+    defined as POINTER TO WORD. All integer arithmetic operators
+    apply to this type.
+
+  PROCESS
+
+    Type used for process handling.
+
+  Procedures
+
+  NEWPROCESS(p:PROC; a: ADDRESS; n: CARDINAL; VAR p1: PROCESS)
+
+    Procedure to instantiate a new process. At  least  50  words
+    are needed for the workspace of a process.
+
+  TRANSFER(VAR p1, p2: PROCESS)
+
+    Transfer of control between two processes.
+                             - 37 -
+
+
+  Functions
+
+  ADR(variable): ADDRESS
+
+    Storage address of the substituted variable.
+
+  SIZE(variable): CARDINAL
+
+    Number of words used by  the  substituted  variable  in  the
+    storage.  If the variable is of a record type with variants,
+    then the variant with maximal size is assumed.
+
+  TSIZE(type): CARDINAL
+  TSIZE(type, tag1const, tag2const, ... ): CARDINAL
+
+    Number  of  words used by a variable of the substituted type
+    in the storage. If the type is a record with variants,  then
+    tag  constants  of  the last FieldList (see Modula-2 syntax)
+    may be substituted in their nesting order. If no or not  all
+    tag constants are specified, then the remaining variant with
+    maximal size is assumed.
+
+
+
+10.11. Code Procedures
+
+The only extension of Modula-2 for Lilith is the addition of so-
+called  code  procedures.  A  code procedure is a declaration in
+which the procedure body has been replaced by  a  (sequence  of)
+code number(s) representing M-code instructions. Code procedures
+are a facility to make available routines that  are  micro-coded
+at  the  level of Modula-2. Code procedures must be applied with
+utmost care.
+
+This facility is reflected by the  following  extension  to  the
+syntax  of  the  procedure  declaration  (see  chapter 10 of the
+Modula-2 report)
+
+$  ProcedureDeclaration =
+$      ProcedureHeading ";" (block | codeblock) ident.
+$  codeblock = CODE CodeSequence END.
+$  CodeSequence = code {";" code}.
+$  code = [ConstExpression].
+
+Example for a code procedure declaration:
+
+  PROCEDURE put(channel: CARDINAL; info: WORD);
+    (* output info to channel *)
+  CODE 241B (* Write *)
+  END put
+
+
+
+                             - 38 -
+
+
+10.12. Compiler Error Messages
+
+  0   : illegal character
+  1   :
+  2   : constant out of range
+  3   : open comment at end of file
+  4   : string terminator not on this line
+  5   : too many errors
+  6   : string too long
+  7   : too many identifiers (identifier table full)
+  8   : too many identifiers (hash table full)
+
+ 20   : identifier expected
+ 21   : integer constant expected
+ 22   : ']' expected
+ 23   : ';' expected
+ 24   : block name at the END does not match
+ 25   : error in block
+ 26   : ':=' expected
+ 27   : error in expression
+ 28   : THEN expected
+ 29   : error in LOOP statement
+ 30   : constant must not be CARDINAL
+ 31   : error in REPEAT statement
+ 32   : UNTIL expected
+ 33   : error in WHILE statement
+ 34   : DO expected
+ 35   : error in CASE statement
+ 36   : OF expected
+ 37   : ':' expected
+ 38   : BEGIN expected
+ 39   : error in WITH statement
+ 40   : END expected
+ 41   : ')' expected
+ 42   : error in constant
+ 43   : '=' expected
+ 44   : error in TYPE declaration
+ 45   : '(' expected
+ 46   : MODULE expected
+ 47   : QUALIFIED expected
+ 48   : error in factor
+ 49   : error in simple type
+ 50   : ',' expected
+ 51   : error in formal type
+ 52   : error in statement sequence
+ 53   : '.' expected
+ 54   : export at global level not allowed
+ 55   : body in definition module not allowed
+ 56   : TO expected
+ 57   : nested module in definition module not allowed
+ 58   : '}' expected
+ 59   : '..' expected
+ 60   : error in FOR statement
+ 61   : IMPORT expected
+
+ 70   : identifier specified twice in importlist
+ 71   : identifier not exported from qualifying module
+ 72   : identifier declared twice
+                             - 39 -
+
+
+ 73   : identifier not declared
+ 74   : type not declared
+ 75   : identifier already declared in module environment
+ 76   :
+ 77   :
+ 78   : value of absolute address must be of type CARDINAL
+ 79   : scope table overflow in compiler
+ 80   : illegal priority
+ 81   : definition module belonging to implementation not found
+ 82   : structure not allowed for implementation of hidden type
+ 83   : procedure implementation different from definition
+ 84   : not all defined procedures or hidden types implemented
+ 85   :
+ 86   : incompatible versions of symbolic modules
+ 87   :
+ 88   : function type is not scalar or basic type
+ 89   :
+ 90   : pointer-referenced type not declared
+ 91   : tagfieldtype expected
+ 92   : incompatible type of variant-constant
+ 93   : constant used twice
+ 94   : arithmetic error in evaluation of constant expression
+ 95   : range not correct
+ 96   : range only with scalar types
+ 97   : type-incompatible constructor element
+ 98   : element value out of bounds
+ 99   : set-type identifier expected
+100   : declaration needs too much space
+101   : undeclared identifier in export-list of the module
+102   :
+103   : wrong class of identifier
+104   : no such module name found
+105   : module name expected
+106   : scalar type expected
+107   : set too large
+108   : type must not be INTEGER or CARDINAL
+109   : scalar or subrange type expected
+110   : variant value out of bounds
+111   : illegal export from program module
+112   : code block for modules not allowed
+
+120   : incompatible types in conversion
+121   : this type is not expected
+122   : variable expected
+123   : incorrect constant
+124   : no procedure found for substitution
+125   : unsatisfying parameters of substituted procedure
+126   : set constant out of range
+127   : error in standard procedure parameters
+128   : type incompatibility
+129   : type identifier expected
+130   : type impossible to index
+131   : field not belonging to a record variable
+132   : too many parameters
+133   :
+134   : reference not to a variable
+135   : illegal parameter substitution
+136   : constant expected
+                             - 40 -
+
+
+137   : expected parameters
+138   : BOOLEAN type expected
+139   : scalar types expected
+140   : operation with incompatible type
+141   : only global procedure or function allowed in
+        expression
+142   : incompatible element type
+143   : type incompatible operands
+144   : no selectors allowed for procedures
+145   : only function call allowed in expression
+146   : arrow not belonging to a pointer variable
+147   : standard function or procedure must not be assigned
+148   : constant not allowed as variant
+149   : SET type expected
+150   : illegal substitution to WORD parameter
+151   : EXIT only in LOOP
+152   : RETURN only in PROCEDURE
+153   : expression expected
+154   : expression not allowed
+155   : type of function expected
+156   : integer constant expected
+157   : procedure call expected
+158   : identifier not exported from qualifying module
+159   : code buffer overflow
+160   : illegal value for code
+161   : call of procedure with lower priority not allowed
+
+200   : compiler error
+201   : implementation restriction
+202   : implementation restriction: for step too large
+203   : implementation restriction: boolean expression too long
+204   : implementation restriction: expression stack overflow,
+        i.e. expression too complicated or too many parameters
+205   : implementation restriction: procedure too long
+206   : implementation restriction: packed element used for
+        var parameter
+207   : implementation restriction: illegal type conversion
+
+220   : not further specified error
+221   : division by zero
+222   : index out of range or conversion error
+223   : case label defined twice
+
