@@ -1,1 +1,14 @@
-DEFINITION MODULE M2RA; (* JG 24.10.85 / NW 17.12.85 *)  FROM M2DA IMPORT ObjPtr;  FROM FileSystem IMPORT File;  VAR ModNo: INTEGER; (* current module number *)      ModList: ObjPtr; (* list of loaded modules *)      RefFile: File;  PROCEDURE InitRef;  PROCEDURE InRef (VAR filename: ARRAY OF CHAR; VAR mod: ObjPtr;                   VAR adr, pno: INTEGER);  PROCEDURE OpenRef;  PROCEDURE CloseRef(adr, pno: INTEGER);  PROCEDURE OutUnit(unit: ObjPtr);  PROCEDURE RefPoint;END M2RA. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)
+DEFINITION MODULE M2RA; (* JG 24.10.85 / NW 17.12.85 *)
+  FROM M2DA IMPORT ObjPtr;
+  FROM FileSystem IMPORT File;
+  VAR ModNo: INTEGER; (* current module number *)
+      ModList: ObjPtr; (* list of loaded modules *)
+      RefFile: File;
+  PROCEDURE InitRef;
+  PROCEDURE InRef (VAR filename: ARRAY OF CHAR; VAR mod: ObjPtr;
+                   VAR adr, pno: INTEGER);
+  PROCEDURE OpenRef;
+  PROCEDURE CloseRef(adr, pno: INTEGER);
+  PROCEDURE OutUnit(unit: ObjPtr);
+  PROCEDURE RefPoint;
+END M2RA. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)

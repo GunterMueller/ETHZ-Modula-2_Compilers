@@ -1,1 +1,32 @@
-DEFINITION MODULE M2EA;  (* NW 19.5.83; HS 20.5.85 / 21.3.91 *)  FROM M2DA IMPORT ObjPtr, ParPtr, Standard;  FROM M2HA IMPORT Item;  FROM M2SA IMPORT Symbol;  CONST   wtabmax        =   4;          GlbVarStartAdr = -28;          LocVarStartAdr =   0;          GlbParStartAdr =  12;          LocParStartAdr =  12;  VAR wlev: INTEGER;  (* WITH nesting level *)  PROCEDURE AllocVar(obj: ObjPtr; VAR adr: INTEGER);  PROCEDURE AllocPar(par: ParPtr; VAR adr: INTEGER);  PROCEDURE AllocFld(obj: ObjPtr; VAR adr: INTEGER);  PROCEDURE GenItem    (VAR x: Item; y, scope: ObjPtr);  PROCEDURE GenIndex   (VAR x, y: Item);                (* x := x[y]     *)  PROCEDURE GenField   (VAR x: Item; f: ObjPtr);        (* x := x.f      *)  PROCEDURE GenDeRef   (VAR x: Item);                   (* x := x^       *)  PROCEDURE GenNeg     (VAR x: Item);                   (* x := -x       *)  PROCEDURE GenNot     (VAR x: Item);                   (* x := ~x       *)  PROCEDURE GenAnd     (VAR x: Item);  PROCEDURE GenOr      (VAR x: Item);  PROCEDURE GenSingSet (VAR x, e: Item);                (* x := {e}      *)  PROCEDURE GenSet     (VAR x, e1, e2: Item);           (* x := {e1..e2} *)  PROCEDURE GenIn      (VAR x, y: Item);                (* x := x IN y   *)  PROCEDURE GenOp      (op: Symbol; VAR x, y: Item);    (* x := x op y   *)  PROCEDURE GenWith    (VAR x: Item; VAR adr: INTEGER); (* x := WITH x   *)  PROCEDURE GenWith2;  PROCEDURE GenStParam (VAR p, x: Item; fctno: Standard;                        parno: INTEGER; morepar: BOOLEAN);  PROCEDURE GenStFct   (fctno: Standard; parno: INTEGER);  PROCEDURE InitM2EM;END M2EA. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)
+DEFINITION MODULE M2EA;  (* NW 19.5.83; HS 20.5.85 / 21.3.91 *)
+  FROM M2DA IMPORT ObjPtr, ParPtr, Standard;
+  FROM M2HA IMPORT Item;
+  FROM M2SA IMPORT Symbol;
+  CONST   wtabmax        =   4;
+          GlbVarStartAdr = -28;
+          LocVarStartAdr =   0;
+          GlbParStartAdr =  12;
+          LocParStartAdr =  12;
+  VAR wlev: INTEGER;  (* WITH nesting level *)
+  PROCEDURE AllocVar(obj: ObjPtr; VAR adr: INTEGER);
+  PROCEDURE AllocPar(par: ParPtr; VAR adr: INTEGER);
+  PROCEDURE AllocFld(obj: ObjPtr; VAR adr: INTEGER);
+  PROCEDURE GenItem    (VAR x: Item; y, scope: ObjPtr);
+  PROCEDURE GenIndex   (VAR x, y: Item);                (* x := x[y]     *)
+  PROCEDURE GenField   (VAR x: Item; f: ObjPtr);        (* x := x.f      *)
+  PROCEDURE GenDeRef   (VAR x: Item);                   (* x := x^       *)
+  PROCEDURE GenNeg     (VAR x: Item);                   (* x := -x       *)
+  PROCEDURE GenNot     (VAR x: Item);                   (* x := ~x       *)
+  PROCEDURE GenAnd     (VAR x: Item);
+  PROCEDURE GenOr      (VAR x: Item);
+  PROCEDURE GenSingSet (VAR x, e: Item);                (* x := {e}      *)
+  PROCEDURE GenSet     (VAR x, e1, e2: Item);           (* x := {e1..e2} *)
+  PROCEDURE GenIn      (VAR x, y: Item);                (* x := x IN y   *)
+  PROCEDURE GenOp      (op: Symbol; VAR x, y: Item);    (* x := x op y   *)
+  PROCEDURE GenWith    (VAR x: Item; VAR adr: INTEGER); (* x := WITH x   *)
+  PROCEDURE GenWith2;
+  PROCEDURE GenStParam (VAR p, x: Item; fctno: Standard;
+                        parno: INTEGER; morepar: BOOLEAN);
+  PROCEDURE GenStFct   (fctno: Standard; parno: INTEGER);
+  PROCEDURE InitM2EM;
+END M2EA. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)

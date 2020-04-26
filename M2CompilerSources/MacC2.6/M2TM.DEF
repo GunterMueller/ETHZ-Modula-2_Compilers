@@ -1,1 +1,17 @@
-DEFINITION MODULE M2TM; (* NW 28.3.83 / 15.12.85 *)  FROM M2DM IMPORT ObjPtr, ObjClass, StrPtr, StrForm, ParPtr, PDPtr;  VAR topScope, Scope: ObjPtr;  (*header of scope located by Find*)  PROCEDURE FindInScope(id: INTEGER; root: ObjPtr): ObjPtr;  PROCEDURE Find(id: INTEGER): ObjPtr;  PROCEDURE FindImport(id: INTEGER): ObjPtr;  PROCEDURE NewObj(id: INTEGER; class: ObjClass): ObjPtr;  PROCEDURE NewStr(form: StrForm): StrPtr;  PROCEDURE NewPar(ident: INTEGER; isvar: BOOLEAN; last: ParPtr): ParPtr;  PROCEDURE NewImp(scope, obj: ObjPtr);  PROCEDURE NewScope(kind: ObjClass);  PROCEDURE CloseScope;  PROCEDURE CheckUDP(obj, node: ObjPtr);  PROCEDURE MarkHeap;  PROCEDURE ReleaseHeap;  PROCEDURE InitTableHandler;END M2TM. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)
+DEFINITION MODULE M2TM; (* NW 28.3.83 / 15.12.85 *)
+  FROM M2DM IMPORT ObjPtr, ObjClass, StrPtr, StrForm, ParPtr, PDPtr;
+  VAR topScope, Scope: ObjPtr;  (*header of scope located by Find*)
+  PROCEDURE FindInScope(id: INTEGER; root: ObjPtr): ObjPtr;
+  PROCEDURE Find(id: INTEGER): ObjPtr;
+  PROCEDURE FindImport(id: INTEGER): ObjPtr;
+  PROCEDURE NewObj(id: INTEGER; class: ObjClass): ObjPtr;
+  PROCEDURE NewStr(form: StrForm): StrPtr;
+  PROCEDURE NewPar(ident: INTEGER; isvar: BOOLEAN; last: ParPtr): ParPtr;
+  PROCEDURE NewImp(scope, obj: ObjPtr);
+  PROCEDURE NewScope(kind: ObjClass);
+  PROCEDURE CloseScope;
+  PROCEDURE CheckUDP(obj, node: ObjPtr);
+  PROCEDURE MarkHeap;
+  PROCEDURE ReleaseHeap;
+  PROCEDURE InitTableHandler;
+END M2TM. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)

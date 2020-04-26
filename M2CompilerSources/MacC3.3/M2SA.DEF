@@ -1,1 +1,34 @@
-DEFINITION MODULE M2SA; (* NW 17.8.83 / 15.12.85; HS 21.3.91 *)  FROM FileSystem IMPORT File;  CONST IdBufLeng = 28000;  TYPE  Symbol = (null,        times, slash, div, rem, mod, and,        plus, minus, or,        eql, neq, lss, leq, gtr, geq, in,        arrow, period, comma, colon, ellipsis, rparen, rbrak, rbrace,        of, then, do, to, by,        lparen, lbrak, lbrace, not, becomes, number, string, ident,        semicolon, bar, end, else, elsif, until,        if, while, repeat, loop, with, exit, return, case, for,        array, pointer, record, set,        begin, code, const, type, var, forward, procedure, module,        definition, implementation, export, qualified, from, import, eof);  (* sym, id, numtyp, intval, dblval, realval, lrlval are implicit results of GetSym *)  VAR sym   : Symbol;    id      : INTEGER;    numtyp  : INTEGER; (* 1 = int, 2 = longint, 3 = char, 4 = real, 5 = longreal *)    intval  : INTEGER;    dblval  : LONGINT;    realval : REAL;    lrlval  : LONGREAL;    scanerr : BOOLEAN;    source  : File;    IdBuf   : ARRAY [0..IdBufLeng-1] OF CHAR; (*identifier buffer*)  PROCEDURE InitScanner(filename: ARRAY OF CHAR);  PROCEDURE Diff(i, I: INTEGER): INTEGER;  PROCEDURE Enter(id: ARRAY OF CHAR): INTEGER;  PROCEDURE KeepId;  PROCEDURE GetSym;  PROCEDURE Mark(n: INTEGER);  PROCEDURE CloseScanner;END M2SA. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)
+DEFINITION MODULE M2SA; (* NW 17.8.83 / 15.12.85; HS 21.3.91 *)
+  FROM FileSystem IMPORT File;
+  CONST IdBufLeng = 28000;
+  TYPE  Symbol = (null,
+        times, slash, div, rem, mod, and,
+        plus, minus, or,
+        eql, neq, lss, leq, gtr, geq, in,
+        arrow, period, comma, colon, ellipsis, rparen, rbrak, rbrace,
+        of, then, do, to, by,
+        lparen, lbrak, lbrace, not, becomes, number, string, ident,
+        semicolon, bar, end, else, elsif, until,
+        if, while, repeat, loop, with, exit, return, case, for,
+        array, pointer, record, set,
+        begin, code, const, type, var, forward, procedure, module,
+        definition, implementation, export, qualified, from, import, eof);
+  (* sym, id, numtyp, intval, dblval, realval, lrlval are implicit results of GetSym *)
+  VAR sym   : Symbol;
+    id      : INTEGER;
+    numtyp  : INTEGER; (* 1 = int, 2 = longint, 3 = char, 4 = real, 5 = longreal *)
+    intval  : INTEGER;
+    dblval  : LONGINT;
+    realval : REAL;
+    lrlval  : LONGREAL;
+    scanerr : BOOLEAN;
+    source  : File;
+    IdBuf   : ARRAY [0..IdBufLeng-1] OF CHAR; (*identifier buffer*)
+  PROCEDURE InitScanner(filename: ARRAY OF CHAR);
+  PROCEDURE Diff(i, I: INTEGER): INTEGER;
+  PROCEDURE Enter(id: ARRAY OF CHAR): INTEGER;
+  PROCEDURE KeepId;
+  PROCEDURE GetSym;
+  PROCEDURE Mark(n: INTEGER);
+  PROCEDURE CloseScanner;
+END M2SA. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)

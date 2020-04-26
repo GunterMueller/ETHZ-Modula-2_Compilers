@@ -1,1 +1,201 @@
-Modula-2 single-pass compiler error codes and restrictionsNW 4.1.84 / rev 10.7.84 / rev 29.6.86 / Assembler 9.8.87 B.St. / rev 21.3.91 HS.Syntax errors-  10  identifier expected-  11  ,  comma expected-  12  ;  semicolon expected-  13  :  colon expected-  14  .  period expected-  15  )  right parenthesis expected-  16  ]  right bracket expected-  17  }  right brace expected-  18  =  equal sign expected-  19  :=  assignment expected-  20  END expected-  21  ..  ellipsis expected-  22  (  left parenthesis expected-  23  OF expected-  24  TO expected-  25  DO expected-  26  UNTIL expected-  27  THEN expected-  28  MODULE expected-  29  illegal digit, or number too large-  30  IMPORT expected-  31  factor starts with illegal symbol-  32  identifier, (, or [ expected-  33  identifier, ARRAY, RECORD, SET, POINTER, PROCEDURE, (, or [ expected-  34  Type followed by illegal symbol-  35  statement starts with illegal symbol-  36  declaration followed by illegal symbol-  37  statement part is not allowed in definition module-  38  export list not allowed in program module-  39  EXIT not inside a LOOP statement-  40  illegal character in number-  41  number too large-  42  comment without closing *)-  44  expression must contain constant operands only-  45  control character within string-  46  too many digits (> 30)Undefined-  50  identifier not declared or not visibleClass and type errors-  51  object should be a constant-  52  object should be a type-  53  object should be a variable-  54  object should be a procedure-  55  object should be a module-  56  type should be a subrange-  57  type should be a record-  58  type should be an array-  59  type should be a set-  60  illegal base type of set-  61  incompatible type of label or of subrange bound-  62  multiply defined case (label)-  63  low bound > high bound-  64  more actual than formal parameters-  65  fewer actual than formal parameters 66 - 73 mismatch between parameter lists in def and in impl modules-  66  more parameters in I than in D-  67  parameters with equal types in I have different types in D-  68  mismatch between VAR specifications-  69  mismatch between type specifications-  70  more parameters in D than in I-  71  mismatch between result type specifications-  72  function in D, pure procedure in I-  73  procedure in D has parameters, but not in I-  74  code or forward procedure cannot be declared in definition module-  75  illegal type of control variable in FOR statement-  76  procedure call of a function-  77  identifiers in heading and at end do not match-  78  redefinition of a type that is declared in definition part-  79  imported module not found-  80  unsatisfied export list entry-  81  illegal type of procedure result-  82  illegal base type of subrange-  83  illegal type of case expression-  84  writing of symbol file failed-  85  keys of imported symbol files do not match-  86  error in format of symbol file-  87  CARDINAL from symbol file not compatible with this compiler-  88  symbol file not successfully opened-  89  there are procedures without bodiesImplementation restrictions of compiler-  90  in {a..b}, if a is a constant, b must also be a constant-  91  identifier buffer overflow-  92  too many cases-  93  too many exit statements-  94  index type of array must be a subrange-  95  subrange bound must be less than 2^15-  96  too many global modules-  97  too many procedure in definition module-  98  too many structure elements in definition moduleMultiple definition- 100  multiple definition within the same scopeClass and type incompatibilities- 101  illegal use of type- 102  illegal use of procedure- 103  illegal use of constant- 104  illegal use of type- 105  illegal use of procedure- 106  illegal use of expression- 107  illegal use of module- 108  constant index out of range- 109  indexed variable is not an array, or the index has the wrong type- 110  record selector is not a field identifier- 111  dereferenced variable is not a pointer- 112  operand type incompatible with sign inversion- 113  operand type incompatible with NOT- 114  x IN y: type(x) # basetype(y)- 115  type of x cannot be the basetype of a set, or y is not a set- 116  {a..b}: type of either a or b is not equal to the base type of the set- 117  incompatible operand types- 118  operand type incompatible with *- 119  operand type incompatible with /- 120  operand type incompatible with DIV- 121  operand type incompatible with MOD- 122  operand type incompatible with AND- 123  operand type incompatible with +- 124  operand type incompatible with -- 125  operand type incompatible with OR- 126  operand type incompatible with relation127 - 131 assignment of a procedure P to a variable of procedure type T- 127  procedure must have level 0- 128  result type of P does not match that of T- 129  mismatch of a parameter of P with the formal type list of T- 130  procedure has fewer parameters than the formal type list- 131  procedure has more parameters than the formal type list- 132  assignment of a negative integer to a cardinal variable- 133  incompatible assignment- 134  assignment to non-variable- 135  type of expression in IF, WHILE, UNTIL clause must be BOOLEAN- 136  call of an object which is not a procedure- 137  type of VAR parameter is not identical to that of actual parameter- 138  constant out of legal range- 139  type of RETURN expression differs from procedure type- 140  illegal type of CASE expression- 141  step in FOR clause cannot be 0- 142  illegal type of control variable- 143  assignment to dynamic array is illegal- 144  incorrect type of parameter of standard procedure- 145  this parameter should be a type identifier- 146  string is too long- 147  incorrect priority specificationName collision- 150  exported identifier collides with declared identifierImplementation restrictions of system- 200  not implemented- 201  integer too small for sign inversion- 202  set element outside word range- 203  overflow in multipliaction- 204  overflow in division- 205  division by zero, or modulus with negative value- 206  overflow in addition- 207  overflow in subtraction- 208  cardinal value assigned to integer variable too large- 209  set size too large- 210  array size too large- 211  address too large- 212  character array component cannot correspond to VAR parameter- 213  illegal store operation (compiler error?)- 214  set elements must be constants- 215  expression too complex  (stack overflow)- 216  double precision multiply and divide are not implemented- 217  long cardinal value assigned to long integer variable too large- 218  assignment of a negative integer to a long cardinal variable- 222  output file not opened  (directory full?)- 223  output incomplete (disk full?)- 224  too many external references- 225  too many strings- 226  program too long- 227  fixup table overflowMC68000:- 230  expression not loadable (implementation restriction)- 231  expression not addressable (implementation restriction)- 232  expression not allowed (implementation restriction)- 233  illegal expression (implementation restriction)- 234  register res. error (e.g. code produced in declaration part)- 235  illegal selector for contant index / field- 236  too many WITH nested (> 4)- 237  illegal operand (implementation restriction)- 238  illegal size of operand (implementation restriction)- 239  type should be LONGREAL- 240  parameter should by dynamic array parameter- 241  illegal type for floating point operation (implementation restriction)- 244  implementation restriction for floating point comparison- 245  illegal type for floating point assignment (implementation restriction)- 247  argument must be a positive constant in the MC68881 Constant ROMWarnings:- 260  Warning: Type transfer functions will be removed from Modula 2- 261  Warning: Export in DEFINITION Module will be removed from Modula 2- 262  Warning: Import of module SYSTEMCode generator emergency brake's:- 285  illegal floating point move- 286  illegal offset or range distance too big- 287  illegal size (byte) for A-register operation- 288  illegal size for A-register operation- 292  illegal size for A-register move- 293  illegal size (byte) for A-register load- 298  implementation restriction, effective address assertion- 299  implementation restriction, compiler assertion- 300  too many constants in enumeration type
+Modula-2 single-pass compiler error codes and restrictions
+NW 4.1.84 / rev 10.7.84 / rev 29.6.86 / Assembler 9.8.87 B.St. / rev 21.3.91 HS.
+Syntax errors
+-  10  identifier expected
+-  11  ,  comma expected
+-  12  ;  semicolon expected
+-  13  :  colon expected
+-  14  .  period expected
+-  15  )  right parenthesis expected
+-  16  ]  right bracket expected
+-  17  }  right brace expected
+-  18  =  equal sign expected
+-  19  :=  assignment expected
+-  20  END expected
+-  21  ..  ellipsis expected
+-  22  (  left parenthesis expected
+-  23  OF expected
+-  24  TO expected
+-  25  DO expected
+-  26  UNTIL expected
+-  27  THEN expected
+-  28  MODULE expected
+-  29  illegal digit, or number too large
+-  30  IMPORT expected
+-  31  factor starts with illegal symbol
+-  32  identifier, (, or [ expected
+-  33  identifier, ARRAY, RECORD, SET, POINTER, PROCEDURE, (, or [ expected
+-  34  Type followed by illegal symbol
+-  35  statement starts with illegal symbol
+-  36  declaration followed by illegal symbol
+-  37  statement part is not allowed in definition module
+-  38  export list not allowed in program module
+-  39  EXIT not inside a LOOP statement
+-  40  illegal character in number
+-  41  number too large
+-  42  comment without closing *)
+-  44  expression must contain constant operands only
+-  45  control character within string
+-  46  too many digits (> 30)
+Undefined
+-  50  identifier not declared or not visible
+Class and type errors
+-  51  object should be a constant
+-  52  object should be a type
+-  53  object should be a variable
+-  54  object should be a procedure
+-  55  object should be a module
+-  56  type should be a subrange
+-  57  type should be a record
+-  58  type should be an array
+-  59  type should be a set
+-  60  illegal base type of set
+-  61  incompatible type of label or of subrange bound
+-  62  multiply defined case (label)
+-  63  low bound > high bound
+-  64  more actual than formal parameters
+-  65  fewer actual than formal parameters
+ 66 - 73 mismatch between parameter lists in def and in impl modules
+-  66  more parameters in I than in D
+-  67  parameters with equal types in I have different types in D
+-  68  mismatch between VAR specifications
+-  69  mismatch between type specifications
+-  70  more parameters in D than in I
+-  71  mismatch between result type specifications
+-  72  function in D, pure procedure in I
+-  73  procedure in D has parameters, but not in I
+-  74  code or forward procedure cannot be declared in definition module
+-  75  illegal type of control variable in FOR statement
+-  76  procedure call of a function
+-  77  identifiers in heading and at end do not match
+-  78  redefinition of a type that is declared in definition part
+-  79  imported module not found
+-  80  unsatisfied export list entry
+-  81  illegal type of procedure result
+-  82  illegal base type of subrange
+-  83  illegal type of case expression
+-  84  writing of symbol file failed
+-  85  keys of imported symbol files do not match
+-  86  error in format of symbol file
+-  87  CARDINAL from symbol file not compatible with this compiler
+-  88  symbol file not successfully opened
+-  89  there are procedures without bodies
+Implementation restrictions of compiler
+-  90  in {a..b}, if a is a constant, b must also be a constant
+-  91  identifier buffer overflow
+-  92  too many cases
+-  93  too many exit statements
+-  94  index type of array must be a subrange
+-  95  subrange bound must be less than 2^15
+-  96  too many global modules
+-  97  too many procedure in definition module
+-  98  too many structure elements in definition module
+Multiple definition
+- 100  multiple definition within the same scope
+Class and type incompatibilities
+- 101  illegal use of type
+- 102  illegal use of procedure
+- 103  illegal use of constant
+- 104  illegal use of type
+- 105  illegal use of procedure
+- 106  illegal use of expression
+- 107  illegal use of module
+- 108  constant index out of range
+- 109  indexed variable is not an array, or the index has the wrong type
+- 110  record selector is not a field identifier
+- 111  dereferenced variable is not a pointer
+- 112  operand type incompatible with sign inversion
+- 113  operand type incompatible with NOT
+- 114  x IN y: type(x) # basetype(y)
+- 115  type of x cannot be the basetype of a set, or y is not a set
+- 116  {a..b}: type of either a or b is not equal to the base type of the set
+- 117  incompatible operand types
+- 118  operand type incompatible with *
+- 119  operand type incompatible with /
+- 120  operand type incompatible with DIV
+- 121  operand type incompatible with MOD
+- 122  operand type incompatible with AND
+- 123  operand type incompatible with +
+- 124  operand type incompatible with -
+- 125  operand type incompatible with OR
+- 126  operand type incompatible with relation
+127 - 131 assignment of a procedure P to a variable of procedure type T
+- 127  procedure must have level 0
+- 128  result type of P does not match that of T
+- 129  mismatch of a parameter of P with the formal type list of T
+- 130  procedure has fewer parameters than the formal type list
+- 131  procedure has more parameters than the formal type list
+- 132  assignment of a negative integer to a cardinal variable
+- 133  incompatible assignment
+- 134  assignment to non-variable
+- 135  type of expression in IF, WHILE, UNTIL clause must be BOOLEAN
+- 136  call of an object which is not a procedure
+- 137  type of VAR parameter is not identical to that of actual parameter
+- 138  constant out of legal range
+- 139  type of RETURN expression differs from procedure type
+- 140  illegal type of CASE expression
+- 141  step in FOR clause cannot be 0
+- 142  illegal type of control variable
+- 143  assignment to dynamic array is illegal
+- 144  incorrect type of parameter of standard procedure
+- 145  this parameter should be a type identifier
+- 146  string is too long
+- 147  incorrect priority specification
+Name collision
+- 150  exported identifier collides with declared identifier
+Implementation restrictions of system
+- 200  not implemented
+- 201  integer too small for sign inversion
+- 202  set element outside word range
+- 203  overflow in multipliaction
+- 204  overflow in division
+- 205  division by zero, or modulus with negative value
+- 206  overflow in addition
+- 207  overflow in subtraction
+- 208  cardinal value assigned to integer variable too large
+- 209  set size too large
+- 210  array size too large
+- 211  address too large
+- 212  character array component cannot correspond to VAR parameter
+- 213  illegal store operation (compiler error?)
+- 214  set elements must be constants
+- 215  expression too complex  (stack overflow)
+- 216  double precision multiply and divide are not implemented
+- 217  long cardinal value assigned to long integer variable too large
+- 218  assignment of a negative integer to a long cardinal variable
+- 222  output file not opened  (directory full?)
+- 223  output incomplete (disk full?)
+- 224  too many external references
+- 225  too many strings
+- 226  program too long
+- 227  fixup table overflow
+MC68000:
+- 230  expression not loadable (implementation restriction)
+- 231  expression not addressable (implementation restriction)
+- 232  expression not allowed (implementation restriction)
+- 233  illegal expression (implementation restriction)
+- 234  register res. error (e.g. code produced in declaration part)
+- 235  illegal selector for contant index / field
+- 236  too many WITH nested (> 4)
+- 237  illegal operand (implementation restriction)
+- 238  illegal size of operand (implementation restriction)
+- 239  type should be LONGREAL
+- 240  parameter should by dynamic array parameter
+- 241  illegal type for floating point operation (implementation restriction)
+- 244  implementation restriction for floating point comparison
+- 245  illegal type for floating point assignment (implementation restriction)
+- 247  argument must be a positive constant in the MC68881 Constant ROM
+Warnings:
+- 260  Warning: Type transfer functions will be removed from Modula 2
+- 261  Warning: Export in DEFINITION Module will be removed from Modula 2
+- 262  Warning: Import of module SYSTEM
+Code generator emergency brake's:
+- 285  illegal floating point move
+- 286  illegal offset or range distance too big
+- 287  illegal size (byte) for A-register operation
+- 288  illegal size for A-register operation
+- 292  illegal size for A-register move
+- 293  illegal size (byte) for A-register load
+- 298  implementation restriction, effective address assertion
+- 299  implementation restriction, compiler assertion
+- 300  too many constants in enumeration type

@@ -1,1 +1,20 @@
-DEFINITION MODULE M2LM;  (* HS 20.5.85 *)  FROM SYSTEM IMPORT WORD;  FROM M2DM   IMPORT ObjPtr, StrPtr, KeyPtr;  VAR pc : CARDINAL;      maxP, maxM : CARDINAL;  PROCEDURE PutWord      (w: WORD);  PROCEDURE PutLong      (l: LONGINT);  PROCEDURE AllocString  (s: CARDINAL; VAR adr, length: INTEGER);  PROCEDURE AllocChar    (ch: CHAR; VAR adr: INTEGER);  PROCEDURE AllocBounds  (min, max, size: INTEGER; VAR adr: INTEGER);  PROCEDURE fixup        (loc: CARDINAL);  PROCEDURE FixLink      (L: CARDINAL);  PROCEDURE FixupWith    (L: CARDINAL; val: INTEGER);  PROCEDURE FixLinkWith  (L, val: CARDINAL);  PROCEDURE MergedLinks  (L0, L1: CARDINAL): CARDINAL;  PROCEDURE OutCodeFile  (VAR name: ARRAY OF CHAR; stamp: KeyPtr;                          datasize: INTEGER; pno, progid: CARDINAL;                          ModList: ObjPtr);  PROCEDURE InitM2LM;END M2LM. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)
+DEFINITION MODULE M2LM;  (* HS 20.5.85 *)
+  FROM SYSTEM IMPORT WORD;
+  FROM M2DM   IMPORT ObjPtr, StrPtr, KeyPtr;
+  VAR pc : CARDINAL;
+      maxP, maxM : CARDINAL;
+  PROCEDURE PutWord      (w: WORD);
+  PROCEDURE PutLong      (l: LONGINT);
+  PROCEDURE AllocString  (s: CARDINAL; VAR adr, length: INTEGER);
+  PROCEDURE AllocChar    (ch: CHAR; VAR adr: INTEGER);
+  PROCEDURE AllocBounds  (min, max, size: INTEGER; VAR adr: INTEGER);
+  PROCEDURE fixup        (loc: CARDINAL);
+  PROCEDURE FixLink      (L: CARDINAL);
+  PROCEDURE FixupWith    (L: CARDINAL; val: INTEGER);
+  PROCEDURE FixLinkWith  (L, val: CARDINAL);
+  PROCEDURE MergedLinks  (L0, L1: CARDINAL): CARDINAL;
+  PROCEDURE OutCodeFile  (VAR name: ARRAY OF CHAR; stamp: KeyPtr;
+                          datasize: INTEGER; pno, progid: CARDINAL;
+                          ModList: ObjPtr);
+  PROCEDURE InitM2LM;
+END M2LM. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)

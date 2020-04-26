@@ -1,1 +1,10 @@
-DEFINITION MODULE M2ClockA;  (* WH 23.12.85; HS 21.3.91 *)  TYPE    Time = RECORD             day:         INTEGER; (* ((year-1900)*20B + month)*40B + day *)             minute:      INTEGER; (* hour*60 + minute *)             millisecond: INTEGER; (* second*1000 + millisecond *)           END;  PROCEDURE SetTime(t: Time);  PROCEDURE GetTime(VAR t: Time);END M2ClockA. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)
+DEFINITION MODULE M2ClockA;  (* WH 23.12.85; HS 21.3.91 *)
+  TYPE
+    Time = RECORD
+             day:         INTEGER; (* ((year-1900)*20B + month)*40B + day *)
+             minute:      INTEGER; (* hour*60 + minute *)
+             millisecond: INTEGER; (* second*1000 + millisecond *)
+           END;
+  PROCEDURE SetTime(t: Time);
+  PROCEDURE GetTime(VAR t: Time);
+END M2ClockA. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)

@@ -1,1 +1,32 @@
-DEFINITION MODULE M2CA; (* HS 19.4.85 / 21.3.91; WH 9.5.85 / 27.6.85 *)  FROM M2DA IMPORT ObjPtr, ParPtr;  FROM M2HA IMPORT Item;  CONST MaxExit = 15; (* number of EXITs-1 per block *)  TYPE LabelRange = RECORD low, high: INTEGER; label: INTEGER END;       ExitTable  = ARRAY [0..MaxExit] OF INTEGER;  VAR curPrio: INTEGER;  PROCEDURE GenAssign(VAR x, y: Item);  PROCEDURE GenFJ(VAR loc: INTEGER);  (* forward jump; loc := pc *)  PROCEDURE GenCFJ(VAR x: Item; VAR loc: INTEGER);  PROCEDURE GenBJ(loc: INTEGER);      (* backward jump to loc *)  PROCEDURE GenCBJ(VAR x: Item; loc: INTEGER);  PROCEDURE PrepCall(VAR x: Item; VAR fp: ParPtr; VAR regs: LONGINT);  PROCEDURE GenParam(VAR ap: Item; f: ParPtr);  PROCEDURE GenCall(VAR x: Item; regs: LONGINT);  PROCEDURE GenEnter(VAR l: INTEGER; lev: INTEGER);  PROCEDURE GenResult(VAR x: Item; proc: ObjPtr; VAR l: INTEGER);  PROCEDURE GenReturn(proc: ObjPtr; l: INTEGER);  PROCEDURE GenCase1(VAR x: Item; VAR l0: INTEGER);  PROCEDURE GenCase2;  PROCEDURE GenCase3(VAR x: Item; l0, l1, n: INTEGER;                     VAR tab: ARRAY OF LabelRange);  PROCEDURE GenFor1(v: Item; VAR e1: Item);  PROCEDURE GenFor2(v: Item; VAR e1, e2: Item);  PROCEDURE GenFor3(v: Item; VAR e2, e3: Item; VAR l0, l1: INTEGER);  PROCEDURE GenFor4(v: Item; VAR e2, e3: Item; l0, l1: INTEGER);  PROCEDURE GenLoop1(VAR s, m: INTEGER; n: INTEGER);  PROCEDURE GenLoop2(s, m: INTEGER; VAR n: INTEGER; VAR tab: ExitTable);  PROCEDURE GenExit(VAR n: INTEGER; VAR tab: ExitTable);  PROCEDURE GenEnterMod(modList: ObjPtr; mno, pno: INTEGER);  PROCEDURE GenExitMod;END M2CA. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)
+DEFINITION MODULE M2CA; (* HS 19.4.85 / 21.3.91; WH 9.5.85 / 27.6.85 *)
+  FROM M2DA IMPORT ObjPtr, ParPtr;
+  FROM M2HA IMPORT Item;
+  CONST MaxExit = 15; (* number of EXITs-1 per block *)
+  TYPE LabelRange = RECORD low, high: INTEGER; label: INTEGER END;
+       ExitTable  = ARRAY [0..MaxExit] OF INTEGER;
+  VAR curPrio: INTEGER;
+  PROCEDURE GenAssign(VAR x, y: Item);
+  PROCEDURE GenFJ(VAR loc: INTEGER);  (* forward jump; loc := pc *)
+  PROCEDURE GenCFJ(VAR x: Item; VAR loc: INTEGER);
+  PROCEDURE GenBJ(loc: INTEGER);      (* backward jump to loc *)
+  PROCEDURE GenCBJ(VAR x: Item; loc: INTEGER);
+  PROCEDURE PrepCall(VAR x: Item; VAR fp: ParPtr; VAR regs: LONGINT);
+  PROCEDURE GenParam(VAR ap: Item; f: ParPtr);
+  PROCEDURE GenCall(VAR x: Item; regs: LONGINT);
+  PROCEDURE GenEnter(VAR l: INTEGER; lev: INTEGER);
+  PROCEDURE GenResult(VAR x: Item; proc: ObjPtr; VAR l: INTEGER);
+  PROCEDURE GenReturn(proc: ObjPtr; l: INTEGER);
+  PROCEDURE GenCase1(VAR x: Item; VAR l0: INTEGER);
+  PROCEDURE GenCase2;
+  PROCEDURE GenCase3(VAR x: Item; l0, l1, n: INTEGER;
+                     VAR tab: ARRAY OF LabelRange);
+  PROCEDURE GenFor1(v: Item; VAR e1: Item);
+  PROCEDURE GenFor2(v: Item; VAR e1, e2: Item);
+  PROCEDURE GenFor3(v: Item; VAR e2, e3: Item; VAR l0, l1: INTEGER);
+  PROCEDURE GenFor4(v: Item; VAR e2, e3: Item; l0, l1: INTEGER);
+  PROCEDURE GenLoop1(VAR s, m: INTEGER; n: INTEGER);
+  PROCEDURE GenLoop2(s, m: INTEGER; VAR n: INTEGER; VAR tab: ExitTable);
+  PROCEDURE GenExit(VAR n: INTEGER; VAR tab: ExitTable);
+  PROCEDURE GenEnterMod(modList: ObjPtr; mno, pno: INTEGER);
+  PROCEDURE GenExitMod;
+END M2CA. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)

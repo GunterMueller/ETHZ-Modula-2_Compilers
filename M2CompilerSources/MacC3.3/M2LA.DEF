@@ -1,1 +1,19 @@
-DEFINITION MODULE M2LA;  (* HS 20.5.85; 21.3.91 *)  FROM SYSTEM IMPORT WORD;  FROM M2DA   IMPORT ObjPtr, StrPtr, KeyPtr;  VAR pc, maxP, maxM : INTEGER;  PROCEDURE PutWord      (w: WORD);  PROCEDURE PutLong      (l: LONGINT);  PROCEDURE AllocString  (s: INTEGER; VAR adr, length: INTEGER);  PROCEDURE AllocChar    (ch: CHAR; VAR adr: INTEGER);  PROCEDURE AllocBounds  (min, max, size: INTEGER; VAR adr: INTEGER);  PROCEDURE fixup        (loc: INTEGER);  PROCEDURE FixLink      (L: INTEGER);  PROCEDURE FixupWith    (L: INTEGER; val: INTEGER);  PROCEDURE FixLinkWith  (L, val: INTEGER);  PROCEDURE MergedLinks  (L0, L1: INTEGER): INTEGER;  PROCEDURE OutCodeFile  (VAR name: ARRAY OF CHAR; stamp: KeyPtr;                          datasize: INTEGER; pno, progid: INTEGER;                          ModList: ObjPtr);  PROCEDURE InitM2LM;END M2LA. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)
+DEFINITION MODULE M2LA;  (* HS 20.5.85; 21.3.91 *)
+  FROM SYSTEM IMPORT WORD;
+  FROM M2DA   IMPORT ObjPtr, StrPtr, KeyPtr;
+  VAR pc, maxP, maxM : INTEGER;
+  PROCEDURE PutWord      (w: WORD);
+  PROCEDURE PutLong      (l: LONGINT);
+  PROCEDURE AllocString  (s: INTEGER; VAR adr, length: INTEGER);
+  PROCEDURE AllocChar    (ch: CHAR; VAR adr: INTEGER);
+  PROCEDURE AllocBounds  (min, max, size: INTEGER; VAR adr: INTEGER);
+  PROCEDURE fixup        (loc: INTEGER);
+  PROCEDURE FixLink      (L: INTEGER);
+  PROCEDURE FixupWith    (L: INTEGER; val: INTEGER);
+  PROCEDURE FixLinkWith  (L, val: INTEGER);
+  PROCEDURE MergedLinks  (L0, L1: INTEGER): INTEGER;
+  PROCEDURE OutCodeFile  (VAR name: ARRAY OF CHAR; stamp: KeyPtr;
+                          datasize: INTEGER; pno, progid: INTEGER;
+                          ModList: ObjPtr);
+  PROCEDURE InitM2LM;
+END M2LA. (* Copyright Departement Informatik, ETH Zuerich, Switzerland, 1992 *)
