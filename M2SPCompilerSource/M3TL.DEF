@@ -1,0 +1,22 @@
+DEFINITION MODULE M3TL;   (*NW 28.3.83 / 30.10.85*)
+  FROM M3DL IMPORT ObjPtr, ObjClass, StrPtr, StrForm, ParPtr, PDPtr;
+
+  VAR topScope, Scope: ObjPtr;  (*header of scope located by Find*)
+
+  PROCEDURE FindInScope(id: CARDINAL; root: ObjPtr): ObjPtr;
+  PROCEDURE Find(id: CARDINAL): ObjPtr;
+  PROCEDURE FindImport(id: CARDINAL): ObjPtr;
+
+  PROCEDURE NewObj(id: CARDINAL; class: ObjClass): ObjPtr;
+  PROCEDURE NewStr(form: StrForm): StrPtr;
+  PROCEDURE NewPar(ident: CARDINAL; isvar: BOOLEAN; last: ParPtr): ParPtr;
+  PROCEDURE NewImp(scope, obj: ObjPtr);
+
+  PROCEDURE NewScope(kind: ObjClass);
+  PROCEDURE CloseScope;
+
+  PROCEDURE CheckUDP(obj, node: ObjPtr);
+  PROCEDURE MarkHeap;
+  PROCEDURE ReleaseHeap;
+  PROCEDURE InitTableHandler;
+END M3TL.

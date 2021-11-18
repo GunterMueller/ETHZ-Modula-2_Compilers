@@ -1,0 +1,21 @@
+DEFINITION MODULE M3RL; (*JG, 24.8.85*)
+
+  FROM M3DL IMPORT ObjPtr;
+  FROM FileSystem IMPORT File;
+
+  VAR ModNo: CARDINAL; (*current module number*)
+      ModList: ObjPtr; (*list of loaded modules*)
+      RefFile: File;
+
+  PROCEDURE InitRef;
+
+  PROCEDURE InRef (VAR filename: ARRAY OF CHAR; VAR mod: ObjPtr;
+                   VAR adr: INTEGER; VAR pno: CARDINAL);
+
+  PROCEDURE OpenRef;
+  PROCEDURE CloseRef(adr: INTEGER; pno: CARDINAL);
+
+  PROCEDURE OutUnit(unit: ObjPtr);
+  PROCEDURE OutPos(sourcepos, pc: CARDINAL);
+
+END M3RL.
